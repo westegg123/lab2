@@ -151,3 +151,102 @@ holder fill_holder(holder HOLDER, uint32_t instruction) {
 	}
 	return HOLDER;
 }
+
+holder get_holder(uint32_t instruction) {
+		holder HOLDER;
+	uint32_t code = get_instruction_segment(21,31, instruction);
+	if ((code == 0x458) || (code == 0x459) || (code == 0x558) || (code == 0x559) || 
+		(code == 0x450) || (code == 0x750) || (code == 0x650) || (code == 0X650) || 
+		(code == 0x550) || (code == 0x69B) || (code == 0x69A) || (code == 0x658) ||
+		(code == 0x659) || (code == 0x758) || (code == 0x759) || (code == 0x6B0) || 
+		(code == 0x4D8)) {
+		// R instructions
+		HOLDER.format = 1;
+		HOLDER.opcode = code;
+
+		HOLDER.Rm = get_instruction_segment(16, 20, instruction);
+		HOLDER.shamt = get_instruction_segment(10, 15, instruction);
+		HOLDER.Rn = get_instruction_segment(5, 9, instruction);
+		HOLDER.Rd = get_instruction_segment(0, 4, instruction);
+	} else if ((code == 0x588) || (code == 0x589) || (code == 0x488) || (code == 0x489) || (code == 0x688) ||
+		(code == 0x788) || (code == 0x789)) {
+		// I instructions
+		HOLDER.format = 2;
+		HOLDER.opcode = code;
+
+		HOLDER.ALU_immediate = get_instruction_segment(10, 21, instruction);
+		HOLDER.Rn = get_instruction_segment(5, 9, instruction);
+		HOLDER.Rd = get_instruction_segment(0, 4, instruction);
+	} else if ((code == 0x7C2) || (code == 0x5C2) || (code == 0x1C2) || (code == 0x3C2) || 
+		(code == 0x7C0) || (code == 0x1C0) || (code == 0x3C0) || (code == 0x5C0)) {
+		// D instructions
+		HOLDER.format = 3;
+		HOLDER.opcode = code;
+
+		HOLDER.DT_address = get_instruction_segment(12, 20, instruction);
+		HOLDER.op = get_instruction_segment(10, 11, instruction);
+		HOLDER.Rn = get_instruction_segment(5, 9, instruction);
+		HOLDER.Rt = get_instruction_segment(0, 4, instruction);
+	} else if ((code >= 0x0A0) && (code <= 0x0BF)) {
+		// B instructions
+		HOLDER.format = 4;
+		HOLDER.opcode = code;
+
+		HOLDER.BR_address = get_instruction_segment(0, 25, instruction);
+	} else if (((code >= 0x5A8) && (code <= 0x5AF)) || 
+		((code >= 0x5A0) && (code <= 0x5A7)) || 
+		((code >= 0x2A0) && (code <= 0x2A7))) {
+		// CB instructions
+		HOLDER.format = 5;
+		HOLDER.opcode = code;
+
+		HOLDER.COND_BR_address = get_instruction_segment(5, 23, instruction);
+		HOLDER.Rt = get_instruction_segment(0, 4, instruction);
+	} else if ((code >= 0x694 && code <= 0x697)) {
+		// IW (IM?) instructions
+		HOLDER.format = 6;
+		HOLDER.opcode = code;
+		
+		HOLDER.MOV_immediate = get_instruction_segment(5, 20, instruction);
+		HOLDER.Rd = get_instruction_segment(0, 4, instruction);
+	}
+	return HOLDER;
+}
+
+void print_instr(holder HOLDER) {
+	printf("------------\n");
+	if (HOLDER.format == 1) {
+		printf("R instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	Rm: %x \n", HOLDER.Rm);
+		printf("	shamt %x \n", HOLDER.shamt);
+		printf("	Rn: %x \n", HOLDER.Rn);
+		printf("	Rd: %x \n", HOLDER.Rd);
+	} else if (HOLDER.format == 2) {
+		printf("I instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	ALU immediate: %x \n", HOLDER.ALU_immediate);
+		printf("	Rn: %x \n", HOLDER.Rn);
+		printf("	Rd: %x \n", HOLDER.Rd);
+	} else if (HOLDER.format == 3) {
+		printf("D instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	DR address: %x \n", HOLDER.DT_address);
+		printf("	Rn: %x \n", HOLDER.Rn);
+		printf("	Rt: %x \n", HOLDER.Rt);
+	} else if (HOLDER.format == 4) {
+		printf("B instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	BR address: %x \n", HOLDER.BR_address);
+	} else if (HOLDER.format == 5) {
+		printf("CB instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	COND BR address: %x \n", HOLDER.COND_BR_address);
+		printf("	Rt: %x \n", HOLDER.Rt);
+	} else if (HOLDER.format == 6) {
+		printf("IW instruction:\n");
+		printf("	Opcode: %x \n", HOLDER.opcode);
+		printf("	MOV immediate: %x \n", HOLDER.MOV_immediate);
+		printf("	Rt: %x \n", HOLDER.Rt);
+	} 
+}

@@ -17,8 +17,12 @@ uint64_t mem_read_64(uint64_t add);
 void mem_write_64(uint64_t add, uint64_t value);
 
 
+// DECODE THE INSTRUCTION FUNCTIONS
 holder get_opcode(uint32_t instruction);
 holder fill_holder(holder stuff, uint32_t instruction);
+holder get_holder(uint32_t instruction);
 
+// PRINT HOLDER
+void print_instr(holder HOLDER);
 
 #endif

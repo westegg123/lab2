@@ -6,40 +6,22 @@
 
 #include "pipe.h"
 #include "shell.h"
+#include "helper.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 
 
-// PIPELINE REGISTER STRUCTS
-typedef struct IF_ID_REGS {
-	uint64_t PC, instruction;
-} IF_ID_REGS;
-
-typedef struct ID_EX_REGS {
-	uint64_t PC, immediate, primary_data_holder, secondary_data_holder;
-} ID_EX_REGS;
-
-typedef struct EX_MEM_REGS {
-	uint64_t PC, ALU_result, data_to_write;
-} EX_MEM_REGS;
-
-typedef struct MEM_WB_REGS {
-	uint64_t fetched_data, ALU_result;
-} MEM_WB_REGS;
-
-typedef struct Pipeline_Regs {
-	IF_ID_REGS IF_ID;
-	ID_EX_REGS ID_EX;
-	EX_MEM_REGS EX_MEM;
-	MEM_WB_REGS MEM_WB;
-} Pipeline_Regs;
-// END PIPELINE REGISTER STRUCTS
-
 /* global pipeline state */
 CPU_State CURRENT_STATE;
 
+Pipeline_Regs CURRENT_REGS;
+
+/*********************** HELPERS ************************************/
+
+
+	
 void pipe_init() {
     memset(&CURRENT_STATE, 0, sizeof(CPU_State));
     CURRENT_STATE.PC = 0x00400000;
@@ -53,8 +35,6 @@ void pipe_cycle() {
 	pipe_stage_fetch();
 }
 
-
-
 void pipe_stage_wb() {
 }
 
@@ -65,7 +45,13 @@ void pipe_stage_execute() {
 }
 
 void pipe_stage_decode() {
+	holder instruct = get_holder(CURRENT_REGS.IF_ID.instruction)
+	CURRENT_REGS.ID_EX.
+
 }
 
 void pipe_stage_fetch() {
+	CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
+	CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
+	CURRENT_STATE.PC += 4;
 }

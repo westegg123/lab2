@@ -9,6 +9,7 @@
 
 #include "shell.h"
 #include "stdbool.h"
+#include "helper.h"
 #include <limits.h>
 
 
@@ -22,6 +23,32 @@ typedef struct CPU_State {
 	uint64_t PC;
 	
 } CPU_State;
+
+// PIPELINE REGISTER STRUCTS
+typedef struct IF_ID_REGS {
+	uint64_t PC, instruction;
+} IF_ID_REGS;
+
+typedef struct ID_EX_REGS {
+	uint64_t PC, immediate, primary_data_holder, secondary_data_holder;
+} ID_EX_REGS;
+
+typedef struct EX_MEM_REGS {
+	uint64_t PC, ALU_result, data_to_write;
+} EX_MEM_REGS;
+
+typedef struct MEM_WB_REGS {
+	uint64_t fetched_data, ALU_result;
+} MEM_WB_REGS;
+
+typedef struct Pipeline_Regs {
+	IF_ID_REGS IF_ID;
+	ID_EX_REGS ID_EX;
+	EX_MEM_REGS EX_MEM;
+	MEM_WB_REGS MEM_WB;
+} Pipeline_Regs;
+
+// END PIPELINE REGISTER STRUCTS
 
 int RUN_BIT;
 
