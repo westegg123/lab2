@@ -45,9 +45,8 @@ void pipe_stage_execute() {
 }
 
 void pipe_stage_decode() {
-	holder instruct = get_holder(CURRENT_REGS.IF_ID.instruction)
-	CURRENT_REGS.ID_EX.
-
+	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.IF_ID.instruction);
+	CURRENT_REGS.ID_EX.PC = CURRENT_REGS.IF_ID.PC;
 }
 
 void pipe_stage_fetch() {
