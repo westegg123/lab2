@@ -76,8 +76,8 @@ void mem_write_64(uint64_t add, uint64_t value) {
 	mem_write_32((add + 4), b2);
 }
 
-holder get_opcode(uint32_t instruction) {
-	holder HOLDER;
+parsed_instruction_holder get_opcode(uint32_t instruction) {
+	parsed_instruction_holder HOLDER;
 	uint32_t code = get_instruction_segment(21,31, instruction);
 	if ((code == 0x458) || (code == 0x459) || (code == 0x558) || (code == 0x559) || (code == 0x450) || (code == 0x750)
 		|| (code == 0x650) || (code == 0X650) || (code == 0x550) || 
@@ -114,7 +114,7 @@ holder get_opcode(uint32_t instruction) {
 	return HOLDER;
 }
 
-holder fill_holder(holder HOLDER, uint32_t instruction) {
+parsed_instruction_holder fill_holder(parsed_instruction_holder HOLDER, uint32_t instruction) {
 	// R
 	if (HOLDER.format == 1) {
 		HOLDER.Rm = get_instruction_segment(16, 20, instruction);
@@ -152,8 +152,8 @@ holder fill_holder(holder HOLDER, uint32_t instruction) {
 	return HOLDER;
 }
 
-holder get_holder(uint32_t instruction) {
-		holder HOLDER;
+parsed_instruction_holder get_holder(uint32_t instruction) {
+		parsed_instruction_holder HOLDER;
 	uint32_t code = get_instruction_segment(21,31, instruction);
 	if ((code == 0x458) || (code == 0x459) || (code == 0x558) || (code == 0x559) || 
 		(code == 0x450) || (code == 0x750) || (code == 0x650) || (code == 0X650) || 
@@ -213,7 +213,7 @@ holder get_holder(uint32_t instruction) {
 	return HOLDER;
 }
 
-void print_instr(holder HOLDER) {
+void print_instr(parsed_instruction_holder HOLDER) {
 	printf("------------\n");
 	if (HOLDER.format == 1) {
 		printf("R instruction:\n");
