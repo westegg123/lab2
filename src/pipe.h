@@ -30,15 +30,15 @@ typedef struct IF_ID_REGS {
 } IF_ID_REGS;
 
 typedef struct ID_EX_REGS {
-	uint64_t PC, immediate, primary_data_holder, secondary_data_holder;
+	uint64_t PC, instruction, immediate, primary_data_holder, secondary_data_holder;
 } ID_EX_REGS;
 
 typedef struct EX_MEM_REGS {
-	uint64_t PC, ALU_result, data_to_write;
+	uint64_t PC, instruction, ALU_result, data_to_write;
 } EX_MEM_REGS;
 
 typedef struct MEM_WB_REGS {
-	uint64_t fetched_data, ALU_result;
+	uint64_t instruction, fetched_data, ALU_result;
 } MEM_WB_REGS;
 
 typedef struct Pipeline_Regs {
