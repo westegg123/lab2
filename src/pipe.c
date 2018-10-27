@@ -92,14 +92,30 @@ void pipe_cycle() {
 }
 
 void pipe_stage_wb() {
-	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
+	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.MEM_WB.instruction);
 	// CPU_State NEXT_STATE = CURRENT_STATE;
 	// INSTRUCTION = CURRENT_REGS.ID_EX.instruction;
 	int WRITE_TO = -1;
 	if (INSTRUCTION_HOLDER.format == 1) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
+			INSTRUCTION_HOLDER.opcode == ANDS || INSTRUCTION_HOLDER.opcode == SUBS || 
+			INSTRUCTION_HOLDER.opcode == (SUBS + 1)) {
+			CURRENT_STATE.FLAG_N = CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
+		}
+
+
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
+			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
+			CURRENT_STATE.FLAG_N = CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
+		} else {
+			printf("DID NOT HANLD THE INSTRUCTION \n");
+			printf("This the opcode: %x \n", INSTRUCTION_HOLDER.opcode);
+		}
 	} else if (INSTRUCTION_HOLDER.format == 3) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rt;
 	} else if (INSTRUCTION_HOLDER.format == 4) {
@@ -117,7 +133,7 @@ void pipe_stage_wb() {
 
 void pipe_stage_mem() {
 	clear_MEM_WB_REGS();
-	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
+	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.EX_MEM.instruction);
 	// CPU_State NEXT_STATE = CURRENT_STATE;
 	if (INSTRUCTION_HOLDER.format == 1) {
 		printf ("SOMETHING WEIRD HAPPENING - R INSTR SHOULDNT GO TO MEM\n");
@@ -140,14 +156,14 @@ void pipe_stage_mem() {
 	CURRENT_REGS.MEM_WB.ALU_result = CURRENT_REGS.EX_MEM.ALU_result;
 }
 
+/******************************* R EXECUTION INSTRUCTIONS HANLDERS *******************************/
+
 void handle_add() {
 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.secondary_data_holder;
 }
 
 void handle_adds() {
 	handle_add();
-	CURRENT_STATE.FLAG_Z = (CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.secondary_data_holder) == 0 ? 1 : 0;
-	CURRENT_STATE.FLAG_N = (CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.secondary_data_holder) < 0 ? 1 : 0;
 }
 
 void handle_and() {
@@ -156,8 +172,6 @@ void handle_and() {
 
 void handle_ands() {
 	handle_and();
-	CURRENT_STATE.FLAG_Z = (CURRENT_REGS.ID_EX.primary_data_holder & CURRENT_REGS.ID_EX.secondary_data_holder) == 0 ? 1 : 0;
-	CURRENT_STATE.FLAG_N = (CURRENT_REGS.ID_EX.primary_data_holder & CURRENT_REGS.ID_EX.secondary_data_holder) < 0 ? 1 : 0;
 }
 
 void handle_eor() {
@@ -182,8 +196,6 @@ void handle_sub() {
 
 void handle_subs() {
 	handle_sub();
-	CURRENT_STATE.FLAG_Z = (CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.secondary_data_holder) == 0 ? 1 : 0;
-	CURRENT_STATE.FLAG_N = (CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.secondary_data_holder) < 0 ? 1 : 0;
 }
 
 void handle_br() {
@@ -193,6 +205,25 @@ void handle_br() {
 void handle_mul() {
 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder * CURRENT_REGS.ID_EX.secondary_data_holder;		
 }
+
+
+/******************************* I EXECUTION INSTRUCTIONS HANLDERS *******************************/
+void handle_addi() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate; 
+}	
+
+void handle_addis() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
+}
+
+void handle_subi() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.immediate;
+}
+
+void handle_subis() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.immediate;
+}
+
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
@@ -211,7 +242,7 @@ void pipe_stage_execute() {
 		} else if (HOLDER.opcode == 0x650) {
 			handle_eor();
 		} else if (HOLDER.opcode == 0x550) {
-			handle_orr():
+			handle_orr();
 		} else if (HOLDER.opcode == 0x69B) {
 			if (get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction) == 0x3F) {
 				handle_lsr();
@@ -235,6 +266,23 @@ void pipe_stage_execute() {
 		}
 	} else {
 		printf("HAVENT HANDLED NON R INSTR YET\n");
+	}
+
+	if (HOLDER.format == 2) {
+		if (HOLDER.opcode == ADDI || HOLDER.opcode == (ADDI + 1)) {
+			handle_addi();
+		} else if (HOLDER.opcode == ADDIS || HOLDER.opcode == (ADDIS + 1)) {
+			handle_addis();
+		} else if (HOLDER.opcode == SUBI || HOLDER.opcode == (SUBI + 1)) {
+			handle_subi();
+		} else if (HOLDER.opcode == SUBIS || HOLDER.opcode == (SUBIS + 1)) {
+			handle_subis();
+		} else {
+			printf("DID NOT HANLD THE INSTRUCTION \n");
+			printf("This the opcode: %x \n", HOLDER.opcode);
+		}
+	} else {
+		printf("HAVENT HANDLED NON I INSTR YET\n");
 	}
 	// } else if (HOLDER.format == 3) {
 	// 	if (HOLDER.op == 0x7C2 || HOLDER.op == 0x1C2 || HOLDER.op == 0x3C2) {
@@ -263,7 +311,6 @@ void pipe_stage_execute() {
 	// } else if (HOLDER.format == 6) {
 	// 	;
 	// }
-	}
 }
 
 void pipe_stage_decode() {
@@ -278,12 +325,13 @@ void pipe_stage_decode() {
 		if (INSTRUCTION_HOLDER.opcode == 0x69B) {
 			CURRENT_REGS.ID_EX.secondary_data_holder = INSTRUCTION_HOLDER.shamt;
 		} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
-			CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(16,21, INSTRUCTION);
+			CURRENT_REGS.ID_EX.secondary_data_holder = 
+				get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
 		}
 
-	// } else if (INSTRUCTION_HOLDER.format == 2) { // I
-	// 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
-	// 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
+	} else if (INSTRUCTION_HOLDER.format == 2) { // I
+	 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
+	 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
 
 	// } else if (INSTRUCTION_HOLDER.format == 3) { // D
 	// 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
