@@ -167,6 +167,33 @@ void handle_eor() {
 void handle_orr() {
 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder | CURRENT_REGS.ID_EX.secondary_data_holder;
 }
+
+void handle_lsl() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder << (0x3F - CURRENT_REGS.ID_EX.secondary_data_holder);
+}
+
+void handle_lsr() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder >> CURRENT_REGS.ID_EX.secondary_data_holder;
+}
+
+void handle_sub() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.secondary_data_holder;		
+}
+
+void handle_subs() {
+	handle_sub();
+	CURRENT_STATE.FLAG_Z = (CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.secondary_data_holder) == 0 ? 1 : 0;
+	CURRENT_STATE.FLAG_N = (CURRENT_REGS.ID_EX.primary_data_holder - CURRENT_REGS.ID_EX.secondary_data_holder) < 0 ? 1 : 0;
+}
+
+void handle_br() {
+	printf("havent handled branching yet\n");
+}
+
+void handle_mul() {
+	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder * CURRENT_REGS.ID_EX.secondary_data_holder;		
+}
+
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
 	clear_EX_MEM_REGS();
@@ -185,7 +212,30 @@ void pipe_stage_execute() {
 			handle_eor();
 		} else if (HOLDER.opcode == 0x550) {
 			handle_orr():
+		} else if (HOLDER.opcode == 0x69B) {
+			if (get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction) == 0x3F) {
+				handle_lsr();
+		} 	else {
+				handle_lsl();
+			}
+		} else if (HOLDER.opcode == 0x69A) {
+			if (get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction) != 0x3F) {
+				handle_lsl();
+		} 	else {
+				handle_lsr();
+			}	
+		} else if (HOLDER.opcode == 0x658 || HOLDER.opcode == 0x659) {
+			handle_sub();
+		} else if (HOLDER.opcode == 0x758 || HOLDER.opcode == 0x759) {
+			handle_subs();
+		} else if (HOLDER.opcode == 0x6B0) {
+			handle_br();
+		} else if (HOLDER.opcode == 0x4D8) {
+			handle_mul();
 		}
+	} else {
+		printf("HAVENT HANDLED NON R INSTR YET\n");
+	}
 	// } else if (HOLDER.format == 3) {
 	// 	if (HOLDER.op == 0x7C2 || HOLDER.op == 0x1C2 || HOLDER.op == 0x3C2) {
 	// 		execute();
@@ -225,6 +275,11 @@ void pipe_stage_decode() {
 	if (INSTRUCTION_HOLDER.format == 1) { // R
 		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 		CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rm];
+		if (INSTRUCTION_HOLDER.opcode == 0x69B) {
+			CURRENT_REGS.ID_EX.secondary_data_holder = INSTRUCTION_HOLDER.shamt;
+		} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
+			CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(16,21, INSTRUCTION);
+		}
 
 	// } else if (INSTRUCTION_HOLDER.format == 2) { // I
 	// 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
