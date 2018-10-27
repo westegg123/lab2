@@ -16,6 +16,7 @@
 /* global pipeline state */
 CPU_State CURRENT_STATE;
 
+int FETCH_MORE = 1;
 Pipeline_Regs CURRENT_REGS;
 
 /************************************ CONSTANTS ************************************/
@@ -99,6 +100,9 @@ void pipe_stage_wb() {
 	// INSTRUCTION = CURRENT_REGS.ID_EX.instruction;
 	int WRITE_TO = -1;
 	printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
+	if (CURRENT_REGS.MEM_WB.instruction == HLT) {
+		RUN_BIT = 0;
+	}
 	if (INSTRUCTION_HOLDER.format == 1) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
 		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
@@ -234,10 +238,11 @@ void handle_subis() {
 void pipe_stage_execute() {
 	clear_EX_MEM_REGS();
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
+	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	printf("EXECUTING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
 	CPU_State NEXT_STATE = CURRENT_STATE;
 	if (CURRENT_REGS.ID_EX.instruction == HLT) {
-		RUN_BIT = 0;
+		FETCH_MORE = 0;
 	}
 	if (HOLDER.format == 1) {
 		if (HOLDER.opcode == 0x458 || HOLDER.opcode == 0x459) {
@@ -273,10 +278,8 @@ void pipe_stage_execute() {
 		} else if (HOLDER.opcode == 0x4D8) {
 			handle_mul();
 		}
-	} else {
-		printf("HAVENT HANDLED NON R INSTR YET\n");
 	}
-
+	
 	if (HOLDER.format == 2) {
 		if (HOLDER.opcode == ADDI || HOLDER.opcode == (ADDI + 1)) {
 			handle_addi();
@@ -362,9 +365,11 @@ void pipe_stage_decode() {
 
 // OK
 void pipe_stage_fetch() {
-	clear_IF_ID_REGS();
-	CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-	printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
-	CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
-	CURRENT_STATE.PC += 4;
+	if (FETCH_MORE != 0) {
+		clear_IF_ID_REGS();
+		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
+		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
+		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
+		CURRENT_STATE.PC += 4;
+	}	
 }
