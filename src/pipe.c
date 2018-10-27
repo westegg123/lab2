@@ -108,16 +108,19 @@ void pipe_stage_wb() {
 		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
 			INSTRUCTION_HOLDER.opcode == ANDS || INSTRUCTION_HOLDER.opcode == SUBS || 
 			INSTRUCTION_HOLDER.opcode == (SUBS + 1)) {
-			CURRENT_STATE.FLAG_N = CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
+			CURRENT_STATE.FLAG_N = (long)CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
 			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
 		}
 
 
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+		printf("HELLO WORLD\n");
+
 		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
 			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
-			CURRENT_STATE.FLAG_N = CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
+			printf("HELLO WORLD\n");
+			CURRENT_STATE.FLAG_N = (long)CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
 			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
 		} else {
 			printf("DID NOT HANLD THE INSTRUCTION \n");
