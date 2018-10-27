@@ -281,9 +281,7 @@ void pipe_stage_execute() {
 		} else if (HOLDER.opcode == 0x4D8) {
 			handle_mul();
 		}
-	}
-	
-	if (HOLDER.format == 2) {
+	} else if (HOLDER.format == 2) {
 		if (HOLDER.opcode == ADDI || HOLDER.opcode == (ADDI + 1)) {
 			handle_addi();
 		} else if (HOLDER.opcode == ADDIS || HOLDER.opcode == (ADDIS + 1)) {
@@ -297,7 +295,7 @@ void pipe_stage_execute() {
 			printf("This the opcode: %x \n", HOLDER.opcode);
 		}
 	} else {
-		printf("HAVENT HANDLED NON I INSTR YET\n");
+		printf("HAVEN'T HANDLED this INSTR YET\n");
 	}
 	// } else if (HOLDER.format == 3) {
 	// 	if (HOLDER.op == 0x7C2 || HOLDER.op == 0x1C2 || HOLDER.op == 0x3C2) {
@@ -326,6 +324,16 @@ void pipe_stage_execute() {
 	// } else if (HOLDER.format == 6) {
 	// 	;
 	// }
+
+	if (HOLDER.format == 4) {
+		CURRENT_REGS.EX_MEM.PC = CURRENT_REGS.ID_EX.PC + sign_extend(CURRENT_REGS.ID_EX.immediate, 26, 2);
+	} else if (HOLDER.format == 5) {
+		CURRENT_REGS.EX_MEM.PC = CURRENT_REGS.ID_EX.PC + sign_extend(CURRENT_REGS.ID_EX.immediate, 19, 2);
+	} else if (HOLDER.format == 6) {
+		CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.immediate;
+	}
+
+
 }
 
 void pipe_stage_decode() {
@@ -354,15 +362,14 @@ void pipe_stage_decode() {
 	// 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 	// 	CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.DT_address, 26, 2);
 
-	// } else if (INSTRUCTION_HOLDER.format == 4) { // B
-	// 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.BR_address;
+	} else if (INSTRUCTION_HOLDER.format == 4) { // B
+		CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.BR_address;
 
-	// } else if (INSTRUCTION_HOLDER.format == 5) { // CB
-	// 	CURRENT_REGS.ID_EX.primary_data_holder = sign_extend(INSTRUCTION_HOLDER.COND_BR_address, 19, 2);
+	} else if (INSTRUCTION_HOLDER.format == 5) { // CB
+ 		CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.COND_BR_address, 19, 2);
 
-	// } else if (INSTRUCTION_HOLDER.format == 6) { // IM/IW
-	// 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.MOV_immediate;
-	// }
+	} else if (INSTRUCTION_HOLDER.format == 6) { // IM/IW
+		CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.MOV_immediate;
 	}
 }
 
