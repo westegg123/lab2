@@ -149,8 +149,12 @@ void pipe_stage_mem() {
 		printf ("SOMETHING WEIRD HAPPENING - I INSTR SHOULDNT GO TO MEM\n");
 	} else if (INSTRUCTION_HOLDER.format == 3) {
 		// load
-		if (INSTRUCTION_HOLDER.op == 0x7C2 || INSTRUCTION_HOLDER.op == 0x1C2 || INSTRUCTION_HOLDER.op == 0x3C2) {
-			CURRENT_REGS.MEM_WB.fetched_data = mem_read_32(CURRENT_REGS.EX_MEM.ALU_result);
+		if (INSTRUCTION_HOLDER.opcode == 0x7C2 || INSTRUCTION_HOLDER.opcode == 0x5C2) {
+			CURRENT_REGS.MEM_WB.fetched_data = mem_read_64(CURRENT_REGS.EX_MEM.ALU_result);
+		} else if (INSTRUCTION_HOLDER.opcode == 0x1C2 ) {
+			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,7,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
+		} else if (INSTRUCTION_HOLDER.opcode == 0x3C2) {
+			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,15,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
 		} else /* store */{
 			mem_write_32(CURRENT_REGS.EX_MEM.ALU_result, CURRENT_REGS.EX_MEM.data_to_write);
 		}
@@ -293,8 +297,30 @@ void pipe_stage_execute() {
 			printf("DID NOT HANLD THE INSTRUCTION \n");
 			printf("This the opcode: %x \n", HOLDER.opcode);
 		}
-	} else {
-		printf("HAVENT HANDLED NON I INSTR YET\n");
+	} 
+
+	if (HOLDER.format == 3) {
+		if (HOLDER.opcode == 0x7C2) {
+			printf("asdasd\n");
+			CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+		} else if (HOLDER.opcode == 0x1C2) {
+			CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,7, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+		} else if (HOLDER.opcode == 0x3C2) {
+			CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,15, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+		} else if (HOLDER.opcode == 0x7C0) {
+			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
+		} else if (HOLDER.opcode == 0x1C0) {
+			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, NEXT_STATE.REGS[HOLDER.Rt]);
+		} else if (HOLDER.opcode == 0x3C0) {
+			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, NEXT_STATE.REGS[HOLDER.Rt]);
+		} else if (HOLDER.opcode == 0x5C0) {
+			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
+			}
+		}
 	}
 	// } else if (HOLDER.format == 3) {
 	// 	if (HOLDER.op == 0x7C2 || HOLDER.op == 0x1C2 || HOLDER.op == 0x3C2) {
@@ -315,7 +341,7 @@ void pipe_stage_execute() {
 	// 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
 	// 		}
 	// 	}
-	// }
+	// // }
 	// } else if (HOLDER.format == 4) {
 	// 	;
 	// } else if (HOLDER.format == 5) {
@@ -323,7 +349,6 @@ void pipe_stage_execute() {
 	// } else if (HOLDER.format == 6) {
 	// 	;
 	// }
-}
 
 void pipe_stage_decode() {
 	clear_ID_EX_REGS();
@@ -347,9 +372,9 @@ void pipe_stage_decode() {
 	 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 	 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
 
-	// } else if (INSTRUCTION_HOLDER.format == 3) { // D
-	// 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
-	// 	CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.DT_address, 26, 2);
+	} else if (INSTRUCTION_HOLDER.format == 3) { // D
+		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
+		CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.DT_address;
 
 	// } else if (INSTRUCTION_HOLDER.format == 4) { // B
 	// 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.BR_address;
