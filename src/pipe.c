@@ -330,8 +330,58 @@ void pipe_stage_execute() {
 		CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.immediate;
 	}
 
+} 
 
-}
+	// if (HOLDER.format == 3) {
+	// 	if (HOLDER.opcode == 0x7C2) {
+	// 		printf("asdasd\n");
+	// 		CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+	// 	} else if (HOLDER.opcode == 0x1C2) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,7, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+	// 	} else if (HOLDER.opcode == 0x3C2) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,15, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+	// 	} else if (HOLDER.opcode == 0x7C0) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 		CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
+	// 	} else if (HOLDER.opcode == 0x1C0) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 		CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 	} else if (HOLDER.opcode == 0x3C0) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 		CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 	} else if (HOLDER.opcode == 0x5C0) {
+	// 		CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 		CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 		}
+	// 	}
+	// }
+	// } else if (HOLDER.format == 3) {
+	// 	if (HOLDER.op == 0x7C2 || HOLDER.op == 0x1C2 || HOLDER.op == 0x3C2) {
+	// 		execute();
+	// 		CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rt];
+	// 	} else {
+	// 		if (HOLDER.format == 0x7C0) {
+	// 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 			CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
+	// 		} else if (HOLDER.format == 0x1C0) {
+	// 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 		} else if (HOLDER.format == 0x3C0) {
+	// 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 		} else if (HOLDER.format == 0x5C0) {
+	// 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+	// 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
+	// 		}
+	// 	}
+	// // }
+	// } else if (HOLDER.format == 4) {
+	// 	;
+	// } else if (HOLDER.format == 5) {
+	// 	;
+	// } else if (HOLDER.format == 6) {
+	// 	;
+	// }
 
 void pipe_stage_decode() {
 	// To Bubble/check for data dependencies - just look back one to see if there is an immediate data dependencies
