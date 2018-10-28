@@ -19,6 +19,9 @@ CPU_State CURRENT_STATE;
 int FETCH_MORE = 1;
 Pipeline_Regs CURRENT_REGS;
 
+int forward[5] = [0,0,0,0,0]
+
+
 /************************************ CONSTANTS ************************************/
 /* 
  * NOT INCLUDED: CBNZ, CBZ, MOVZ, B, B.COND
@@ -243,6 +246,8 @@ void handle_subis() {
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
+	// to handle internal forwarding - check in this stage between instruction in execute and in fetch
+	// maybe keep a global to move forward the instructions that need to forward 
 	clear_EX_MEM_REGS();
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
 	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
@@ -329,6 +334,9 @@ void pipe_stage_execute() {
 }
 
 void pipe_stage_decode() {
+	// To Bubble/check for data dependencies - just look back one to see if there is an immediate data dependencies
+	// probably need a buble global so that decode doesn't work and fetch stalls 
+
 	clear_ID_EX_REGS();
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.IF_ID.instruction);
 	CURRENT_REGS.ID_EX.PC = CURRENT_REGS.IF_ID.PC;
