@@ -241,7 +241,11 @@ void pipe_stage_wb() {
 	}
 
 	if (WRITE_TO != -1) {
-		CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
+		if (INSTRUCTION_HOLDER.format != 3) { 
+			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
+		} else {
+			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.fetched_data;
+		}
 	}
 	stat_inst_retire++;
 }
@@ -597,7 +601,6 @@ void pipe_stage_decode() {
 				INSTRUCTION_HOLDER.opcode == STURW || INSTRUCTION_HOLDER.opcode == STURB) {
 				CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rt];
 			}
-
 
 		} else if (INSTRUCTION_HOLDER.format == 4) { // B
 			CURRENT_STATE.PC = CURRENT_REGS.IF_ID.PC + INSTRUCTION_HOLDER.BR_address;
