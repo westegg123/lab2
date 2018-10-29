@@ -457,7 +457,8 @@ void pipe_stage_execute() {
 	// } else {
 	// 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
 	// }
-
+	
+	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
 	if (CURRENT_REGS.FU.reg == 1) {
 		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.FU.forwarded_value;
 	} else if (CURRENT_REGS.FU.reg == 2) {
