@@ -528,7 +528,7 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x7C0) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = CURRENT_STATE[HOLDER.Rt];
+			CURRENT_REGS.EX_MEM.data_to_write = CURRENT_STATE.REGS[HOLDER.Rt];
 		} else if (HOLDER.opcode == 0x1C0) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, CURRENT_STATE.REGS[HOLDER.Rt]);
