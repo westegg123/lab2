@@ -99,7 +99,7 @@ void clear_Forwarding_Unit() {
 
 // Equation for regWrite flag
 int get_regWrite(uint32_t opcode) {
-	return (opcode >= 0x0A0 && opcode <= 0x0BF) && (opcode != STUR) & 
+	return (opcode < 0x0A0 || opcode > 0x0BF) && (opcode != STUR) && 
 		(opcode != STURB) && (opcode != STURH) && (opcode != STURW);
 }
 
@@ -119,7 +119,7 @@ void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (depend_holder.format == 1) {	
-			if (ind_holder.Rd == depend_holder.Rn) {
+			if (ind_holder.Rd == depend_holder.Rm) {
 				BUBBLE = 1;
 			}
 		// SPECIAL FOR STUR< CBZ, CBNZ
@@ -137,13 +137,19 @@ void forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 	printf("IN FORWARDING UNIT\n");
 	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
+	printf("            This is the result of regWrite: %u\n", get_regWrite(ind_holder.opcode));
+	printf("            This is the Opcode: %lx\n", ind_instruct);
+	print_instr(ind_holder);
+
 
 	if ((ind_holder.Rd != 31) && get_regWrite(ind_holder.opcode)) {
+		printf("alkjdsfh lakjsdf hlkajdfh;aklsjdf;lkasjdf;laksjd;ldkfj;l\n");
 		if (ind_holder.Rd == depend_holder.Rn) {
 			CURRENT_REGS.FU.reg = 1;
 		}
+
 		if (depend_holder.format == 1) {	
-			if (ind_holder.Rd == depend_holder.Rn) {
+			if (ind_holder.Rd == depend_holder.Rm) {
 				CURRENT_REGS.FU.reg = 2;
 			}
 		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
@@ -226,10 +232,8 @@ void pipe_stage_wb() {
 			printf("This the opcode: %x \n", INSTRUCTION_HOLDER.opcode);
 		}
 	} else if (INSTRUCTION_HOLDER.format == 3) {
-		print_instr(INSTRUCTION_HOLDER);
 		if ((INSTRUCTION_HOLDER.opcode == LDUR_64) || (INSTRUCTION_HOLDER.opcode == LDUR_32) ||
 			(INSTRUCTION_HOLDER.opcode == LDURH) || (INSTRUCTION_HOLDER.opcode == LDURB)) {
-			printf("I AM WRITING FOR FORMAT 3\n");
 			WRITE_TO = INSTRUCTION_HOLDER.Rt;
 		}
 	} else if (INSTRUCTION_HOLDER.format == 4) {
@@ -260,7 +264,6 @@ void pipe_stage_mem() {
 	clear_MEM_WB_REGS();
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.EX_MEM.instruction);
 	printf("MEMORY STAGE FOR INSTRUCTION: %lx\n", CURRENT_REGS.EX_MEM.instruction);
-	// CPU_State NEXT_STATE = CURRENT_STATE;
 	if (INSTRUCTION_HOLDER.format == 1) {
 		printf ("SOMETHING WEIRD HAPPENING - R INSTR SHOULDNT GO TO MEM\n");
 	} else if (INSTRUCTION_HOLDER.format == 2) {
@@ -441,7 +444,6 @@ void pipe_stage_execute() {
 	}
 
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
-	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	printf("EXECUTING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
 	// CPU_State NEXT_STATE = CURRENT_STATE;
 	
@@ -464,8 +466,10 @@ void pipe_stage_execute() {
 
 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
 	if (CURRENT_REGS.FU.reg == 1) {
+		printf("In the forward ALU 1: %lx\n", CURRENT_REGS.FU.forwarded_value);
 		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.FU.forwarded_value;
 	} else if (CURRENT_REGS.FU.reg == 2) {
+		printf("In the forward ALU 2 %lx\n", CURRENT_REGS.FU.forwarded_value);
 		CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.FU.forwarded_value;
 	}
 	clear_Forwarding_Unit();
@@ -558,6 +562,7 @@ void pipe_stage_execute() {
 	} else if (HOLDER.format == 6) {
 		CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.immediate;
 	}
+	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 }
 
 
@@ -570,7 +575,6 @@ void pipe_stage_decode() {
 
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.IF_ID.instruction);
 	CURRENT_REGS.ID_EX.PC = CURRENT_REGS.IF_ID.PC;
-	CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
 	//printf("DECODING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
 
 	hazard_detection_unit(CURRENT_REGS.IF_ID.instruction, CURRENT_REGS.ID_EX.instruction);
@@ -617,6 +621,7 @@ void pipe_stage_decode() {
 			CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.MOV_immediate;
 		}
 	}
+	CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
 }
 
 void pipe_stage_fetch() {
