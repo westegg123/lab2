@@ -439,7 +439,7 @@ void pipe_stage_execute() {
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
 	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	printf("EXECUTING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
-	CPU_State NEXT_STATE = CURRENT_STATE;
+	// CPU_State NEXT_STATE = CURRENT_STATE;
 	
 	//check if there is immediate dependicies (EX/MEM to ID/EX), then check dependicies between (MEM/WB and ID/EX)
 	forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
@@ -519,7 +519,6 @@ void pipe_stage_execute() {
 		}
 	} else if (HOLDER.format == 3) {
 		clear_EX_MEM_REGS();
-
 		if (HOLDER.opcode == 0x7C2) {
 			printf("asdasd\n");
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
@@ -527,21 +526,18 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x3C2) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
-		} 
-
-		
 		} else if (HOLDER.opcode == 0x7C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = CURRENT_STATE[HOLDER.Rt];
 		} else if (HOLDER.opcode == 0x1C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, NEXT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, CURRENT_STATE.REGS[HOLDER.Rt]);
 		} else if (HOLDER.opcode == 0x3C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, NEXT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, CURRENT_STATE.REGS[HOLDER.Rt]);
 		} else if (HOLDER.opcode == 0x5C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_STATE.REGS[HOLDER.Rt]);
 		}
 
 	} else if (HOLDER.format == 4) {
