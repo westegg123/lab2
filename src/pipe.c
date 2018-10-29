@@ -190,6 +190,7 @@ void pipe_cycle() {
 
 void pipe_stage_wb() {
 	if (CURRENT_REGS.MEM_WB.instruction == 0) {
+		printf("Died in Write Back\n");
 		return;
 	}
 
@@ -241,6 +242,7 @@ void pipe_stage_wb() {
 
 void pipe_stage_mem() {
 	if (CURRENT_REGS.EX_MEM.instruction == 0) {
+		printf("Died in Memmory\n");
 		clear_MEM_WB_REGS();
 		return;
 	}
@@ -422,7 +424,8 @@ void handle_cbz() {
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
-	if (CURRENT_REGS.ID_EX.instruction) {
+	if (CURRENT_REGS.ID_EX.instruction == 0) {
+		printf("Died in Execute\n");
 		clear_EX_MEM_REGS();
 		return;
 	}
