@@ -133,6 +133,7 @@ void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 }
 
 void forward(uint32_t depend_instruct, uint32_t ind_instruct) {
+	printf("IN FORWARDING UNIT\n");
 	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
@@ -190,6 +191,7 @@ void pipe_cycle() {
 
 void pipe_stage_wb() {
 	if (CURRENT_REGS.MEM_WB.instruction == 0) {
+		printf("Write Back Stage Skipped\n");
 		return;
 	}
 
@@ -241,6 +243,7 @@ void pipe_stage_wb() {
 
 void pipe_stage_mem() {
 	if (CURRENT_REGS.EX_MEM.instruction == 0) {
+		printf("Memmeory Stage Skipped\n");
 		clear_MEM_WB_REGS();
 		return;
 	}
@@ -361,17 +364,8 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int result = 0; 
 
 	if (new_flags()) {
-		if (CURRENT_REGS.EX_MEM.ALU_result == 0) {
-			flag_Z = 0;
-		} else {
-			flag_Z = 1;
-		}
-
-		if (((long) CURRENT_REGS.EX_MEM.ALU_result) < 0) {
-			flag_N = 1;
-		} else {
-			flag_N = 0;
-		}
+		flag_Z = CURRENT_REGS.EX_MEM.ALU_result == 0 ? 1 : 0;
+		flag_N = CURRENT_REGS.EX_MEM.ALU_result < 0 ? 1 : 0;
 	}
 
 	if (cond == 0) {
@@ -431,7 +425,8 @@ void handle_cbz() {
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
-	if (CURRENT_REGS.ID_EX.instruction) {
+	if (CURRENT_REGS.ID_EX.instruction == 0) {
+		printf("Execute Skipped\n");
 		clear_EX_MEM_REGS();
 		return;
 	}
@@ -457,7 +452,7 @@ void pipe_stage_execute() {
 	// } else {
 	// 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
 	// }
-	
+
 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
 	if (CURRENT_REGS.FU.reg == 1) {
 		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.FU.forwarded_value;
