@@ -121,7 +121,7 @@ void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 			if (ind_holder.Rd == depend_holder.Rn) {
 				BUBBLE = 1;
 			}
-		// SPECIAL FOR STUR, CBZ, CBNZ
+		// SPECIAL FOR STUR< CBZ, CBNZ
 		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
 			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
 			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
@@ -190,7 +190,6 @@ void pipe_cycle() {
 
 void pipe_stage_wb() {
 	if (CURRENT_REGS.MEM_WB.instruction == 0) {
-		printf("Died in Write Back\n");
 		return;
 	}
 
@@ -227,7 +226,7 @@ void pipe_stage_wb() {
 	} else if (INSTRUCTION_HOLDER.format == 3) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rt;
 	} else if (INSTRUCTION_HOLDER.format == 4) {
-		printf("SOMETHING WEIRD HAPPENING - BR SHOULDNT WRITE BACK\n");
+		printf("SOMETHING WEIRD HAPPENING -   SHOULDNT WRITE BACK\n");
 	} else if (INSTRUCTION_HOLDER.format == 5) {
 		printf("SOMETHING WEIRD HAPPENING - CB SHOULDNT WRITE BACK\n");
 	} else if (INSTRUCTION_HOLDER.format == 6) {
@@ -242,7 +241,6 @@ void pipe_stage_wb() {
 
 void pipe_stage_mem() {
 	if (CURRENT_REGS.EX_MEM.instruction == 0) {
-		printf("Died in Memmory\n");
 		clear_MEM_WB_REGS();
 		return;
 	}
@@ -363,25 +361,34 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int result = 0; 
 
 	if (new_flags()) {
-		flag_Z = CURRENT_REGS.EX_MEM.ALU_result == 0 ? 1 : 0;
-		flag_N = ((long) CURRENT_REGS.EX_MEM.ALU_result) < 0 ? 1 : 0;
+		if (CURRENT_REGS.EX_MEM.ALU_result == 0) {
+			flag_Z = 0;
+		} else {
+			flag_Z = 1;
+		}
+
+		if (((long) CURRENT_REGS.EX_MEM.ALU_result) < 0) {
+			flag_N = 1;
+		} else {
+			flag_N = 0;
+		}
 	}
 
 	if (cond == 0) {
 		// EQ or NE
-		printf("HANDLING BEQ or BNE\n");
-		if (flag_Z == 1) {
-			result = 1;	
+		// printf("HANDLING BEQ or BNE\n");
+		if ((HOLDER.Rt & 1) == 1 && ((HOLDER.Rt & 15) != 15)) {
+			result = !result;
 		}
 	} else if (cond == 5) {
 		// BGE or BLT
-		printf("HANDLING BGE or BLT\n");
+		// printf("HANDLING BGE or BLT\n");
 		if ((flag_N == 0) && (flag_Z == 0)) {
 			result = 1;
 		}
 	} else if (cond == 6) {
 		// BGT or BLE
-		printf("HANDLING BGT or BLE\n");
+		// printf("HANDLING BGT or BLE\n");
 		if ((flag_N == 0) && (flag_Z == 0)) {
 			result = 1;
 		}
@@ -424,8 +431,7 @@ void handle_cbz() {
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
-	if (CURRENT_REGS.ID_EX.instruction == 0) {
-		printf("Died in Execute\n");
+	if (CURRENT_REGS.ID_EX.instruction) {
 		clear_EX_MEM_REGS();
 		return;
 	}
@@ -514,22 +520,16 @@ void pipe_stage_execute() {
 	} else if (HOLDER.format == 3) {
 		clear_EX_MEM_REGS();
 
-		// if (HOLDER.opcode == 0x7C2) {
-		// 	printf("asdasd\n");
-		// 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
-		// } else if (HOLDER.opcode == 0x1C2) {
-		// 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
-		// } else if (HOLDER.opcode == 0x3C2) {
-		// 	CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
-		// } 
-
 		if (HOLDER.opcode == 0x7C2) {
 			printf("asdasd\n");
-			CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x1C2) {
-			CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,7, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x3C2) {
-			CURRENT_REGS.EX_MEM.ALU_result = get_memory_segment(0,15, mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate));
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
+		} 
+
+		
 		} else if (HOLDER.opcode == 0x7C0) {
 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
 			CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
@@ -584,6 +584,7 @@ void pipe_stage_decode() {
 			if (INSTRUCTION_HOLDER.opcode == 0x69B) {
 				CURRENT_REGS.ID_EX.secondary_data_holder = INSTRUCTION_HOLDER.shamt;
 			} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
+
 				CURRENT_REGS.ID_EX.secondary_data_holder = 
 					get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
 			}
@@ -615,7 +616,7 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	if (FETCH_MORE != 0 && BUBBLE != 1) {
+	if (FETCH_MORE != 0 || BUBBLE != 1) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
 		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
