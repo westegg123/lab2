@@ -440,7 +440,13 @@ void pipe_stage_execute() {
 	if (CURRENT_REGS.FU.reg == 0) {
 		forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
 		if (CURRENT_REGS.FU.reg != 0) {
-			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.ALU_result;
+			parsed_instruction_holder WB_instruct = get_holder(CURRENT_REGS.MEM_WB.instruction);
+			if (WB_instruct.opcode == LDURH || WB_instruct.opcode == LDUR_64 ||
+				WB_instruct.opcode == LDUR_32 || WB_instruct.opcode == LDURB) {
+				CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.fetched_data;
+			} else {
+				CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.ALU_result;
+			}
 		}
 	} else {
 		CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
@@ -507,6 +513,16 @@ void pipe_stage_execute() {
 		}
 	} else if (HOLDER.format == 3) {
 		clear_EX_MEM_REGS();
+
+		// if (HOLDER.opcode == 0x7C2) {
+		// 	printf("asdasd\n");
+		// 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+		// } else if (HOLDER.opcode == 0x1C2) {
+		// 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+		// } else if (HOLDER.opcode == 0x3C2) {
+		// 	CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
+		// } 
+
 		if (HOLDER.opcode == 0x7C2) {
 			printf("asdasd\n");
 			CURRENT_REGS.EX_MEM.ALU_result = mem_read_32(CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate);
@@ -527,6 +543,7 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, NEXT_STATE.REGS[HOLDER.Rt]);
 		}
+
 	} else if (HOLDER.format == 4) {
 		printf("YOU SHOULD NEVER GET HERE WITH B\n");
 	} else if (HOLDER.format == 5) {
