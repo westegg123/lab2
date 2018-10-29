@@ -41,11 +41,17 @@ typedef struct MEM_WB_REGS {
 	uint64_t instruction, fetched_data, ALU_result;
 } MEM_WB_REGS;
 
+typedef struct Forwarding_Unit {
+	int reg; // A = 1, B = 2, Nothing = 0 
+	uint64_t forwarded_value;
+} Forwarding_Unit;
+
 typedef struct Pipeline_Regs {
 	IF_ID_REGS IF_ID;
 	ID_EX_REGS ID_EX;
 	EX_MEM_REGS EX_MEM;
 	MEM_WB_REGS MEM_WB;
+	Forwarding_Unit FU;
 } Pipeline_Regs;
 
 // END PIPELINE REGISTER STRUCTS
