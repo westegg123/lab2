@@ -236,6 +236,7 @@ void pipe_stage_wb() {
 	if (WRITE_TO != -1) {
 		CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
 	}
+	stat_inst_retire++;
 }
 
 void pipe_stage_mem() {
