@@ -527,9 +527,6 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x3C2) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
-		} 
-
-		
 		} else if (HOLDER.opcode == 0x7C0) {
 			CURRENT_REGS.EX_MEM.ALU_result = NEXT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
 			CURRENT_REGS.EX_MEM.data_to_write = NEXT_STATE.REGS[HOLDER.Rt];
@@ -599,7 +596,6 @@ void pipe_stage_decode() {
 
 		} else if (INSTRUCTION_HOLDER.format == 4) { // B
 			CURRENT_STATE.PC = CURRENT_REGS.IF_ID.PC + INSTRUCTION_HOLDER.BR_address;
-			clear_IF_ID_REGS();
 
 		} else if (INSTRUCTION_HOLDER.format == 5) { // CB
 			if ((INSTRUCTION_HOLDER.opcode >= 0x5A8 && INSTRUCTION_HOLDER.opcode <= 0x5AF) || 
@@ -616,7 +612,7 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	if (FETCH_MORE != 0 || BUBBLE != 1) {
+	if (FETCH_MORE != 0 && BUBBLE != 1) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
 		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
