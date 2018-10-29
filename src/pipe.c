@@ -65,6 +65,10 @@ int BUBBLE = 0;
 
 /************************************ HELPERS ************************************/
 
+void reset_bubble() {
+	BUBBLE = 0;
+}
+
 void clear_IF_ID_REGS() {
 	CURRENT_REGS.IF_ID.PC = 0;
 	CURRENT_REGS.IF_ID.instruction = 0;
@@ -180,6 +184,7 @@ void pipe_cycle() {
 	pipe_stage_execute();
 	pipe_stage_decode();
 	pipe_stage_fetch();
+	reset_bubble();
 	printf("--------CYCLE END-------\n\n");
 }
 
