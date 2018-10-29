@@ -117,7 +117,7 @@ void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 			if (ind_holder.Rd == depend_holder.Rn) {
 				BUBBLE = 1;
 			}
-		// SPECIAL FOR STUR< CBZ, CBNZ
+		// SPECIAL FOR STUR, CBZ, CBNZ
 		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
 			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
 			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
@@ -355,34 +355,25 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int result = 0; 
 
 	if (new_flags()) {
-		if (CURRENT_REGS.EX_MEM.ALU_result == 0) {
-			flag_Z = 0;
-		} else {
-			flag_Z = 1;
-		}
-
-		if (((long) CURRENT_REGS.EX_MEM.ALU_result) < 0) {
-			flag_N = 1;
-		} else {
-			flag_N = 0;
-		}
+		flag_Z = CURRENT_REGS.EX_MEM.ALU_result == 0 ? 1 : 0;
+		flag_N = ((long) CURRENT_REGS.EX_MEM.ALU_result) < 0 ? 1 : 0;
 	}
 
 	if (cond == 0) {
 		// EQ or NE
-		// printf("HANDLING BEQ or BNE\n");
-		if ((HOLDER.Rt & 1) == 1 && ((HOLDER.Rt & 15) != 15)) {
-			result = !result;
+		printf("HANDLING BEQ or BNE\n");
+		if (flag_Z == 1) {
+			result = 1;	
 		}
 	} else if (cond == 5) {
 		// BGE or BLT
-		// printf("HANDLING BGE or BLT\n");
+		printf("HANDLING BGE or BLT\n");
 		if ((flag_N == 0) && (flag_Z == 0)) {
 			result = 1;
 		}
 	} else if (cond == 6) {
 		// BGT or BLE
-		// printf("HANDLING BGT or BLE\n");
+		printf("HANDLING BGT or BLE\n");
 		if ((flag_N == 0) && (flag_Z == 0)) {
 			result = 1;
 		}
@@ -584,7 +575,6 @@ void pipe_stage_decode() {
 			if (INSTRUCTION_HOLDER.opcode == 0x69B) {
 				CURRENT_REGS.ID_EX.secondary_data_holder = INSTRUCTION_HOLDER.shamt;
 			} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
-
 				CURRENT_REGS.ID_EX.secondary_data_holder = 
 					get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
 			}
