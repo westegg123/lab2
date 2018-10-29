@@ -612,7 +612,7 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	if (FETCH_MORE != 0 || BUBBLE != 1) {
+	if (FETCH_MORE != 0 && BUBBLE != 1) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
 		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
