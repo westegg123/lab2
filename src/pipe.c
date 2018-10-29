@@ -99,8 +99,8 @@ void clear_Forwarding_Unit() {
 
 // Equation for regWrite flag
 int get_regWrite(uint32_t opcode) {
-	return (opcode >= 0x0A0 && opcode <= 0x0BF) & (opcode != STUR) & 
-		(opcode != STURB) & (opcode != STURH) & (opcode != STURW);
+	return (opcode >= 0x0A0 && opcode <= 0x0BF) && (opcode != STUR) & 
+		(opcode != STURB) && (opcode != STURH) && (opcode != STURW);
 }
 
 int get_memRead(uint32_t opcode) {
@@ -109,6 +109,7 @@ int get_memRead(uint32_t opcode) {
 }
 
 void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
+	printf("IN HAZARD DETECTION UNIT\n");
 	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
@@ -194,12 +195,12 @@ void pipe_stage_wb() {
 		printf("Write Back Stage Skipped\n");
 		return;
 	}
-
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.MEM_WB.instruction);
 	// CPU_State NEXT_STATE = CURRENT_STATE;
 	// INSTRUCTION = CURRENT_REGS.ID_EX.instruction;
 	int WRITE_TO = -1;
 	printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
+	print_instr(INSTRUCTION_HOLDER);
 	if (CURRENT_REGS.MEM_WB.instruction == HLT) {
 		RUN_BIT = 0;
 	}
@@ -214,19 +215,23 @@ void pipe_stage_wb() {
 		}
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
-		printf("HELLO WORLD\n");
+		//printf("HELLO WORLD\n");
 
 		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
 			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
-			printf("HELLO WORLD\n");
 			CURRENT_STATE.FLAG_N = (long)CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
 			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
 		} else {
-			printf("DID NOT HANLD THE INSTRUCTION \n");
+			printf("DID NOT HANLDE THE INSTRUCTION \n");
 			printf("This the opcode: %x \n", INSTRUCTION_HOLDER.opcode);
 		}
 	} else if (INSTRUCTION_HOLDER.format == 3) {
-		WRITE_TO = INSTRUCTION_HOLDER.Rt;
+		print_instr(INSTRUCTION_HOLDER);
+		if ((INSTRUCTION_HOLDER.opcode == LDUR_64) || (INSTRUCTION_HOLDER.opcode == LDUR_32) ||
+			(INSTRUCTION_HOLDER.opcode == LDURH) || (INSTRUCTION_HOLDER.opcode == LDURB)) {
+			printf("I AM WRITING FOR FORMAT 3\n");
+			WRITE_TO = INSTRUCTION_HOLDER.Rt;
+		}
 	} else if (INSTRUCTION_HOLDER.format == 4) {
 		printf("SOMETHING WEIRD HAPPENING -   SHOULDNT WRITE BACK\n");
 	} else if (INSTRUCTION_HOLDER.format == 5) {
@@ -523,19 +528,18 @@ void pipe_stage_execute() {
 		} else if (HOLDER.opcode == 0x3C2) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x7C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = CURRENT_STATE.REGS[HOLDER.Rt];
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + CURRENT_REGS.ID_EX.immediate;
+			CURRENT_REGS.EX_MEM.data_to_write = CURRENT_REGS.ID_EX.secondary_data_holder;
 		} else if (HOLDER.opcode == 0x1C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, CURRENT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,7, CURRENT_REGS.ID_EX.secondary_data_holder);
 		} else if (HOLDER.opcode == 0x3C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, CURRENT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,15, CURRENT_REGS.ID_EX.secondary_data_holder);
 		} else if (HOLDER.opcode == 0x5C0) {
-			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_STATE.REGS[HOLDER.Rn] + HOLDER.DT_address;
-			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_STATE.REGS[HOLDER.Rt]);
+			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
+			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
-
 	} else if (HOLDER.format == 4) {
 		printf("YOU SHOULD NEVER GET HERE WITH B\n");
 	} else if (HOLDER.format == 5) {
@@ -563,7 +567,7 @@ void pipe_stage_decode() {
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.IF_ID.instruction);
 	CURRENT_REGS.ID_EX.PC = CURRENT_REGS.IF_ID.PC;
 	CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
-	printf("DECODING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
+	//printf("DECODING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
 
 	hazard_detection_unit(CURRENT_REGS.IF_ID.instruction, CURRENT_REGS.ID_EX.instruction);
 
@@ -588,6 +592,12 @@ void pipe_stage_decode() {
 		} else if (INSTRUCTION_HOLDER.format == 3) { // D
 			CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 			CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.DT_address;
+
+			if (INSTRUCTION_HOLDER.opcode == STUR || INSTRUCTION_HOLDER.opcode == STURH ||
+				INSTRUCTION_HOLDER.opcode == STURW || INSTRUCTION_HOLDER.opcode == STURB) {
+				CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rt];
+			}
+
 
 		} else if (INSTRUCTION_HOLDER.format == 4) { // B
 			CURRENT_STATE.PC = CURRENT_REGS.IF_ID.PC + INSTRUCTION_HOLDER.BR_address;
