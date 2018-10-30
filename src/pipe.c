@@ -20,7 +20,8 @@ int FETCH_MORE = 1;
 Pipeline_Regs CURRENT_REGS, START_REGS;
 
 int BUBBLE = 0;
-
+int NEW_PC_FLAG = 0;
+uint32_t NEW_PC = 0;
 /* Notes on forwarding:
  * For bubbling, need to implement a control for each function
  * For forwarding - need to forward in the ID stage of each dependent instruction
@@ -277,8 +278,8 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	if (cond == 0) {
 		// EQ or NE
 		// printf("HANDLING BEQ or BNE\n");
-		if ((HOLDER.Rt & 1) == 1 && ((HOLDER.Rt & 15) != 15)) {
-			result = !result;
+		if (flag_Z == 1) {
+			result = 1;	
 		}
 	} else if (cond == 5) {
 		// BGE or BLT
@@ -357,7 +358,7 @@ void pipe_stage_wb() {
 		RUN_BIT = 0;
 		return;
 	}
-	printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
+	//printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
 
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.MEM_WB.instruction);
 	int WRITE_TO = -1;
@@ -372,7 +373,6 @@ void pipe_stage_wb() {
 		}
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
-		
 		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
 			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
 			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
@@ -400,7 +400,7 @@ void pipe_stage_wb() {
 }
 
 void pipe_stage_mem() {
-	if (CURRENT_REGS.EX_MEM.instruction == 0 ) {
+	if (CURRENT_REGS.EX_MEM.instruction == 0) {
 		//printf("Memmeory Stage Skipped\n");
 		clear_MEM_WB_REGS();
 		return;
@@ -494,7 +494,6 @@ void pipe_stage_execute() {
 	}
 
 
-
 	if (HOLDER.format == 1) {
 		clear_EX_MEM_REGS();
 		if (HOLDER.opcode == 0x458 || HOLDER.opcode == 0x459) {
@@ -563,7 +562,9 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
 	} else if (HOLDER.format == 4) {
-		//printf("YOU SHOULD NEVER GET HERE WITH B\n");
+		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		NEW_PC_FLAG = 1;
+		clear_IF_ID_REGS();
 	} else if (HOLDER.format == 5) {
 		if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
 			handle_cbnz();
@@ -627,8 +628,7 @@ void pipe_stage_decode() {
 			}
 
 		} else if (INSTRUCTION_HOLDER.format == 4) { // B
-			CURRENT_STATE.PC = CURRENT_REGS.IF_ID.PC + INSTRUCTION_HOLDER.BR_address;
-
+			CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.BR_address, 26, 2);
 		} else if (INSTRUCTION_HOLDER.format == 5) { // CB
 			if ((INSTRUCTION_HOLDER.opcode >= 0x5A8 && INSTRUCTION_HOLDER.opcode <= 0x5AF) || 
 				(INSTRUCTION_HOLDER.opcode >= 0x5A0 && INSTRUCTION_HOLDER.opcode <= 0x5A7)) {
@@ -647,10 +647,23 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
+	if (NEW_PC_FLAG) {
+			NEW_PC_FLAG = 0;
+		if (NEW_PC == CURRENT_STATE.PC) {
+			NEW_PC = 0;
+		} else {
+			clear_IF_ID_REGS();
+			CURRENT_STATE.PC = NEW_PC;		
+			NEW_PC = 0;
+			return;
+		}
+	}
+
+
 	if (FETCH_MORE != 0 && BUBBLE != 1) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-		//printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
+		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
 		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
 		CURRENT_STATE.PC += 4;
 	} 
