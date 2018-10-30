@@ -136,7 +136,7 @@ int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
 
 			if (ind_holder.Rt == depend_holder.Rt) {
-				return 1;
+				return 2;
 			}
 		}
 	}
@@ -273,8 +273,8 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		MEM_instruct.opcode == (SUBIS + 1)) {
 
 		printf("updating flag\n");
-		flag_Z = (CURRENT_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
-		flag_N = (CURRENT_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
+		flag_Z = (START_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
+		flag_N = (START_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
 	}
 
 	if (cond == 0) {
