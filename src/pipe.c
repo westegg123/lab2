@@ -451,7 +451,6 @@ void pipe_stage_execute() {
 		clear_EX_MEM_REGS();
 		return;
 	} else if (CURRENT_REGS.ID_EX.instruction == HLT) {
-		FETCH_MORE = 0;
 		clear_EX_MEM_REGS();
 		CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 		return;
@@ -590,6 +589,9 @@ void pipe_stage_decode() {
 	} else if (CURRENT_REGS.IF_ID.instruction == HLT) {
 		clear_ID_EX_REGS();
 		CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
+		FETCH_MORE = 0;
+		CURRENT_STATE.PC = CURRENT_REGS.IF_ID.PC + 8;
+		clear_IF_ID_REGS();
 		return;
 	}
 
@@ -664,6 +666,7 @@ void pipe_stage_fetch() {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
 		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
+		printf("THis is the PC:%lx\n", CURRENT_STATE.PC);
 		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
 		CURRENT_STATE.PC += 4;
 	} 
