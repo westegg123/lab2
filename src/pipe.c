@@ -303,8 +303,6 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
-	} else {
-		clear_EX_MEM_REGS();
 	}
 }
 
@@ -314,8 +312,6 @@ void handle_cbnz() {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
-	} else {
-		clear_EX_MEM_REGS();
 	}
 }
 
@@ -325,8 +321,6 @@ void handle_cbz() {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
-	} else {
-		clear_EX_MEM_REGS();
 	}
 }
 
@@ -344,7 +338,16 @@ void pipe_cycle() {
 	pipe_stage_mem();
 	pipe_stage_execute();
 	pipe_stage_decode();
-	pipe_stage_fetch();
+	//pipe_stage_fetch();
+
+	if (NEW_PC == 0 || NEW_PC == CURRENT_STATE.PC) {
+		pipe_stage_fetch();
+	} else {
+		CURRENT_STATE.PC = NEW_PC;
+		NEW_PC = 0;
+		clear_IF_ID_REGS();
+	}
+	
 	reset_bubble();
 	//printf("--------CYCLE END-------\n\n");
 }
@@ -355,6 +358,7 @@ void pipe_stage_wb() {
 		return;
 	} else if (CURRENT_REGS.MEM_WB.instruction == HLT) {
 		printf("FINITO\n");
+		stat_inst_retire++;
 		RUN_BIT = 0;
 		return;
 	}
@@ -494,8 +498,10 @@ void pipe_stage_execute() {
 	}
 
 
+
+	clear_EX_MEM_REGS();
+	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	if (HOLDER.format == 1) {
-		clear_EX_MEM_REGS();
 		if (HOLDER.opcode == 0x458 || HOLDER.opcode == 0x459) {
 			handle_add();
 		} else if (HOLDER.opcode == 0x558 || HOLDER.opcode == 0x559) {
@@ -530,7 +536,6 @@ void pipe_stage_execute() {
 			handle_mul();
 		}
 	} else if (HOLDER.format == 2) {
-		clear_EX_MEM_REGS();
 		if (HOLDER.opcode == ADDI || HOLDER.opcode == (ADDI + 1)) {
 			handle_addi();
 		} else if (HOLDER.opcode == ADDIS || HOLDER.opcode == (ADDIS + 1)) {
@@ -541,7 +546,6 @@ void pipe_stage_execute() {
 			handle_subis();
 		}
 	} else if (HOLDER.format == 3) {
-		clear_EX_MEM_REGS();
 		if (HOLDER.opcode == 0x7C2) {
 			CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder + CURRENT_REGS.ID_EX.immediate;
 		} else if (HOLDER.opcode == 0x1C2) {
@@ -563,8 +567,8 @@ void pipe_stage_execute() {
 		}
 	} else if (HOLDER.format == 4) {
 		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		NEW_PC_FLAG = 1;
 		clear_IF_ID_REGS();
+		clear_ID_EX_REGS();
 	} else if (HOLDER.format == 5) {
 		if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
 			handle_cbnz();
@@ -573,11 +577,9 @@ void pipe_stage_execute() {
 		} else if (HOLDER.opcode >= 0x2A0 && HOLDER.opcode <= 0x2A7) {
 			handle_bcond(HOLDER);
 		}
-
 	} else if (HOLDER.format == 6) {
 		CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.immediate;
 	}
-	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 }
 
 
@@ -647,18 +649,17 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	if (NEW_PC_FLAG) {
-			NEW_PC_FLAG = 0;
-		if (NEW_PC == CURRENT_STATE.PC) {
-			NEW_PC = 0;
-		} else {
-			clear_IF_ID_REGS();
-			CURRENT_STATE.PC = NEW_PC;		
-			NEW_PC = 0;
-			return;
-		}
-	}
-
+	// if (NEW_PC_FLAG && FETCH_MORE != 0) {
+	// 		NEW_PC_FLAG = 0;
+	// 	if (NEW_PC == CURRENT_STATE.PC) {
+	// 		NEW_PC = 0;
+	// 	} else {
+	// 		clear_IF_ID_REGS();
+	// 		CURRENT_STATE.PC = NEW_PC;		
+	// 		NEW_PC = 0;
+	// 		return;
+	// 	}
+	// }
 
 	if (FETCH_MORE != 0 && BUBBLE != 1) {
 		clear_IF_ID_REGS();
