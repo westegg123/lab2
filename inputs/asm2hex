@@ -15,14 +15,11 @@ fhex = os.path.splitext(args.fasm)[0] + ".x"
 
 # run as (the actual ARM assembler)
 armas = curpwd + "/../aarch64-linux-android-4.9/bin/aarch64-linux-android-as"
-#armas = '/home/jokar/cs222-aut-16-admin/lab1/problem/aarch64-linux-android-4.9/bin/aarch64-linux-android-as'
 cmd = [armas, fasm, "-o", ftmp]
 subprocess.call(cmd)
 
 # SPIM outputs many files; but we are interested in only one
 armobjdump = curpwd + "/../aarch64-linux-android-4.9/bin/aarch64-linux-android-objdump"
-#armobjdump = '/home/jokar/cs222-aut-16-admin/lab1/problem/aarch64-linux-android-4.9/bin/aarch64-linux-android-objdump'
-
 cmd = [armobjdump, "-d", ftmp]
 fstdout = open(fhex, "w")
 subprocess.call(cmd, stdout = fstdout)
