@@ -247,6 +247,23 @@ void print_instr(parsed_instruction_holder HOLDER) {
 		printf("IW instruction:\n");
 		printf("	Opcode: %x \n", HOLDER.opcode);
 		printf("	MOV immediate: %x \n", HOLDER.MOV_immediate);
-		printf("	Rt: %x \n", HOLDER.Rt);
+		printf("	Rd: %x \n", HOLDER.Rd);
 	} 
 }
+
+
+
+// if (CURRENT_REGS.FU.reg == 0) {
+	// 	forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
+	// 	if (CURRENT_REGS.FU.reg != 0) {
+	// 		parsed_instruction_holder WB_instruct = get_holder(CURRENT_REGS.MEM_WB.instruction);
+	// 		if (WB_instruct.opcode == LDURH || WB_instruct.opcode == LDUR_64 ||
+	// 			WB_instruct.opcode == LDUR_32 || WB_instruct.opcode == LDURB) {
+	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.fetched_data;
+	// 		} else {
+	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.ALU_result;
+	// 		}
+	// 	}
+	// } else {
+	// 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
+	// }
