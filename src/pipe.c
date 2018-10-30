@@ -264,20 +264,23 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int flag_Z = CURRENT_STATE.FLAG_Z;
 	int result = 0; 
 
-	parsed_instruction_holder MEM_instruct = get_holder(CURRENT_REGS.EX_MEM.instruction);
+	parsed_instruction_holder MEM_instruct = get_holder(START_REGS.EX_MEM.instruction);
+	printf("MEM INSTRUCT OPCODE: %x\n", MEM_instruct.opcode);
 	if (MEM_instruct.opcode == ADDS || MEM_instruct.opcode == (ADDS + 1) ||
 		MEM_instruct.opcode == ANDS || MEM_instruct.opcode == SUBS || 
 		MEM_instruct.opcode == (SUBS + 1) || MEM_instruct.opcode == ADDIS || 
 		MEM_instruct.opcode == (ADDIS + 1) || MEM_instruct.opcode == SUBIS || 
 		MEM_instruct.opcode == (SUBIS + 1)) {
 
+		printf("updating flag\n");
 		flag_Z = (CURRENT_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
 		flag_N = (CURRENT_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
 	}
 
 	if (cond == 0) {
 		// EQ or NE
-		// printf("HANDLING BEQ or BNE\n");
+		printf("HANDLING BEQ or BNE\n");
+		printf("flag Z:	%x\n", flag_Z);
 		if (flag_Z == 1) {
 			result = 1;	
 		}
@@ -299,7 +302,8 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		result = !result;
 	}
 
-	if (result) {
+	if (result == 1) {
+		printf("result is 1\n");
 		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
@@ -587,6 +591,7 @@ void pipe_stage_decode() {
 		clear_ID_EX_REGS();
 		return;
 	} else if (CURRENT_REGS.IF_ID.instruction == HLT) {
+		printf("ASDASD\n");
 		clear_ID_EX_REGS();
 		CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
 		FETCH_MORE = 0;
