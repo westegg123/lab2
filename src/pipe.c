@@ -300,7 +300,7 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	}
 
 	if (result) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 	}
@@ -309,7 +309,7 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 
 void handle_cbnz() {
 	if(CURRENT_REGS.ID_EX.secondary_data_holder != 0) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 	}
@@ -318,7 +318,7 @@ void handle_cbnz() {
 
 void handle_cbz() {
 	if(CURRENT_REGS.ID_EX.secondary_data_holder == 0) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		NEW_PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 	}
@@ -345,7 +345,6 @@ void pipe_cycle() {
 	} else {
 		CURRENT_STATE.PC = NEW_PC;
 		NEW_PC = 0;
-		clear_IF_ID_REGS();
 	}
 	
 	reset_bubble();
