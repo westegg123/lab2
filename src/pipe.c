@@ -120,6 +120,8 @@ void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
 	if (get_memRead(ind_holder.opcode)) {
+	
+
 		if (ind_holder.Rt == depend_holder.Rn) {
 			BUBBLE = 1;
 		}
@@ -162,6 +164,37 @@ void forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 	} else {
 		CURRENT_REGS.FU.reg = 0;
+	}
+}
+
+int forward_data_bubble(uint32_t depend_instruct, uint32_t ind_instruct) {
+	if (ind_instruct == 0) {
+		return 0;
+	}
+
+	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
+	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
+
+
+	if (get_memRead(ind_holder.opcode)) {
+
+		if (ind_holder.Rt == depend_holder.Rn) {
+			return 1;
+		}
+
+		if (depend_holder.format == 1) {	
+			if (ind_holder.Rt == depend_holder.Rm) {
+				return 2;
+			}
+		// SPECIAL FOR STUR, CBZ, CBNZ
+		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
+			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
+			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
+
+			if (ind_holder.Rt == depend_holder.Rt) {
+				return 2;
+			}
+		}
 	}
 }
 
@@ -212,13 +245,26 @@ void pipe_stage_wb() {
 		RUN_BIT = 0;
 	}
 
+
+	if (CURRENT_REGS.EX_MEM.instruction == 0) {
+		int bubble_result = forward_data_bubble(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
+		print_instr(get_holder(CURRENT_REGS.MEM_WB.instruction));
+		print_instr(get_holder(CURRENT_REGS.ID_EX.instruction));
+		if (bubble_result == 1) {
+			CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.MEM_WB.fetched_data;
+		} else if (bubble_result == 2) {
+			CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.MEM_WB.fetched_data;
+		}	
+	}
+
+
 	if (INSTRUCTION_HOLDER.format == 1) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
 		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
 			INSTRUCTION_HOLDER.opcode == ANDS || INSTRUCTION_HOLDER.opcode == SUBS || 
 			INSTRUCTION_HOLDER.opcode == (SUBS + 1)) {
-			CURRENT_STATE.FLAG_N = (long)CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
-			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
+			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
 		}
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
@@ -226,8 +272,8 @@ void pipe_stage_wb() {
 
 		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
 			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
-			CURRENT_STATE.FLAG_N = (long)CURRENT_REGS.MEM_WB.ALU_result < 0 ? 1 : 0;
-			CURRENT_STATE.FLAG_Z = CURRENT_REGS.MEM_WB.ALU_result == 0 ? 1 : 0;
+			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
 		} else {
 			//printf("DID NOT HANLDE THE INSTRUCTION \n");
 			//printf("This the opcode: %x \n", INSTRUCTION_HOLDER.opcode);
@@ -379,8 +425,8 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int result = 0; 
 
 	if (new_flags()) {
-		flag_Z = CURRENT_REGS.EX_MEM.ALU_result == 0 ? 1 : 0;
-		flag_N = CURRENT_REGS.EX_MEM.ALU_result < 0 ? 1 : 0;
+		flag_Z = (CURRENT_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
+		flag_N = (CURRENT_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
 	}
 
 	if (cond == 0) {
@@ -474,7 +520,7 @@ void pipe_stage_execute() {
 		CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.FU.forwarded_value;
 	}
 	clear_Forwarding_Unit();
-	
+
 
 	if (CURRENT_REGS.ID_EX.instruction == HLT) {
 		FETCH_MORE = 0;
