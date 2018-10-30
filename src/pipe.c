@@ -17,7 +17,8 @@
 CPU_State CURRENT_STATE;
 
 int FETCH_MORE = 1;
-Pipeline_Regs CURRENT_REGS;
+Pipeline_Regs CURRENT_REGS, START_REGS;
+
 int BUBBLE = 0;
 
 /* Notes on forwarding:
@@ -95,11 +96,6 @@ void clear_MEM_WB_REGS() {
 	CURRENT_REGS.MEM_WB.ALU_result = 0;
 }
 
-void clear_Forwarding_Unit() {
-	CURRENT_REGS.FU.reg = 0;
-	CURRENT_REGS.FU.forwarded_value = 0;
-}
-
 // Equation for regWrite flag
 int get_regWrite(uint32_t opcode) {
 	return (opcode < 0x0A0 || opcode > 0x0BF) && (opcode != STUR) && 
@@ -111,63 +107,7 @@ int get_memRead(uint32_t opcode) {
 		(opcode == LDURB) || (opcode == LDURH);
 }
 
-void hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
-	if (ind_instruct == 0) {
-		return;
-	}
-
-	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
-	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
-
-	if (get_memRead(ind_holder.opcode)) {
-	
-
-		if (ind_holder.Rt == depend_holder.Rn) {
-			BUBBLE = 1;
-		}
-
-		if (depend_holder.format == 1) {	
-			if (ind_holder.Rt == depend_holder.Rm) {
-				BUBBLE = 1;
-			}
-		// SPECIAL FOR STUR, CBZ, CBNZ
-		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
-			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
-			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
-
-			if (ind_holder.Rt == depend_holder.Rt) {
-				BUBBLE = 1;
-			}
-		}
-	}
-}
-
-void forward(uint32_t depend_instruct, uint32_t ind_instruct) {
-	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
-	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
-
-	if ((ind_holder.Rd != 31) && get_regWrite(ind_holder.opcode)) {
-		if (ind_holder.Rd == depend_holder.Rn) {
-			CURRENT_REGS.FU.reg = 1;
-		}
-
-		if (depend_holder.format == 1) {	
-			if (ind_holder.Rd == depend_holder.Rm) {
-				CURRENT_REGS.FU.reg = 2;
-			}
-		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
-			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
-			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5A7)) {
-			if (ind_holder.Rd == depend_holder.Rt) {
-				CURRENT_REGS.FU.reg = 2;
-			}
-		}
-	} else {
-		CURRENT_REGS.FU.reg = 0;
-	}
-}
-
-int forward_data_bubble(uint32_t depend_instruct, uint32_t ind_instruct) {
+int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 	if (ind_instruct == 0) {
 		return 0;
 	}
@@ -175,9 +115,12 @@ int forward_data_bubble(uint32_t depend_instruct, uint32_t ind_instruct) {
 	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
+	if (depend_holder.opcode >= 0x694 && depend_holder.opcode <= 0x697) {
+		return 0;
+	}
+
 
 	if (get_memRead(ind_holder.opcode)) {
-
 		if (ind_holder.Rt == depend_holder.Rn) {
 			return 1;
 		}
@@ -192,155 +135,51 @@ int forward_data_bubble(uint32_t depend_instruct, uint32_t ind_instruct) {
 			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
 
 			if (ind_holder.Rt == depend_holder.Rt) {
-				return 2;
+				return 1;
 			}
 		}
-	}
-}
-
-int new_flags() {
-	parsed_instruction_holder MEM_instruct = get_holder(CURRENT_REGS.EX_MEM.instruction);
-
-	if (MEM_instruct.opcode == ADDS || MEM_instruct.opcode == (ADDS + 1) ||
-		MEM_instruct.opcode == ANDS || MEM_instruct.opcode == SUBS || 
-		MEM_instruct.opcode == (SUBS + 1) || MEM_instruct.opcode == ADDIS || 
-		MEM_instruct.opcode == (ADDIS + 1) || MEM_instruct.opcode == SUBIS || 
-		MEM_instruct.opcode == (SUBIS + 1)) {
-		return 1;
 	}
 	return 0;
 }
 
+int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
+	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
+	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
-/************************************ END OF HELPERS ************************************/
-
-void pipe_init() {
-    memset(&CURRENT_STATE, 0, sizeof(CPU_State));
-    CURRENT_STATE.PC = 0x00400000;
-}
-
-void pipe_cycle() {
-	printf("--------CYCLE START-----\n");
-	pipe_stage_wb();
-	printf("This is register 10: %lx\n", CURRENT_STATE.REGS[10]);
-	pipe_stage_mem();
-	pipe_stage_execute();
-	pipe_stage_decode();
-	pipe_stage_fetch();
-	reset_bubble();
-	printf("--------CYCLE END-------\n\n");
-}
-
-void pipe_stage_wb() {
-	if (CURRENT_REGS.MEM_WB.instruction == 0) {
-		printf("Write Back Stage Skipped\n");
-		return;
-	}
-	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.MEM_WB.instruction);
-	// CPU_State NEXT_STATE = CURRENT_STATE;
-	// INSTRUCTION = CURRENT_REGS.ID_EX.instruction;
-	int WRITE_TO = -1;
-	printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
-	if (CURRENT_REGS.MEM_WB.instruction == HLT) {
-		RUN_BIT = 0;
+	if (get_memRead(ind_instruct)) {
+		return 0;
 	}
 
-
-	if (CURRENT_REGS.EX_MEM.instruction == 0) {
-		int bubble_result = forward_data_bubble(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
-		print_instr(get_holder(CURRENT_REGS.MEM_WB.instruction));
-		print_instr(get_holder(CURRENT_REGS.ID_EX.instruction));
-		if (bubble_result == 1) {
-			CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.MEM_WB.fetched_data;
-		} else if (bubble_result == 2) {
-			CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.MEM_WB.fetched_data;
-		}	
+	if (depend_holder.opcode >= 0x694 && depend_holder.opcode <= 0x697) {
+		return 0;
 	}
 
-
-	if (INSTRUCTION_HOLDER.format == 1) {
-		WRITE_TO = INSTRUCTION_HOLDER.Rd;
-		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
-			INSTRUCTION_HOLDER.opcode == ANDS || INSTRUCTION_HOLDER.opcode == SUBS || 
-			INSTRUCTION_HOLDER.opcode == (SUBS + 1)) {
-			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
-			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
+	if ((ind_holder.Rd != 31) && get_regWrite(ind_holder.opcode)) {
+		
+		uint32_t ind_target = ind_holder.Rd;
+		if (ind_holder.format == 3) {
+			ind_target = ind_holder.Rt;
+		} else if (ind_holder.format == 5) {
+			return 0;
 		}
-	} else if (INSTRUCTION_HOLDER.format == 2) {
-		WRITE_TO = INSTRUCTION_HOLDER.Rd;
-		//printf("HELLO WORLD\n");
 
-		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
-			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
-			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
-			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
-		} else {
-			//printf("DID NOT HANLDE THE INSTRUCTION \n");
-			//printf("This the opcode: %x \n", INSTRUCTION_HOLDER.opcode);
+		if (ind_target == depend_holder.Rn) {
+			return 1;
 		}
-	} else if (INSTRUCTION_HOLDER.format == 3) {
-		if ((INSTRUCTION_HOLDER.opcode == LDUR_64) || (INSTRUCTION_HOLDER.opcode == LDUR_32) ||
-			(INSTRUCTION_HOLDER.opcode == LDURH) || (INSTRUCTION_HOLDER.opcode == LDURB)) {
-			WRITE_TO = INSTRUCTION_HOLDER.Rt;
-		}
-	} else if (INSTRUCTION_HOLDER.format == 4) {
-		//printf("SOMETHING WEIRD HAPPENING -   SHOULDNT WRITE BACK\n");
-	} else if (INSTRUCTION_HOLDER.format == 5) {
-		//printf("SOMETHING WEIRD HAPPENING - CB SHOULDNT WRITE BACK\n");
-	} else if (INSTRUCTION_HOLDER.format == 6) {
-		WRITE_TO = INSTRUCTION_HOLDER.Rd;
-	}
 
-	if (WRITE_TO != -1) {
-		if (INSTRUCTION_HOLDER.format != 3) { 
-			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
-		} else {
-			printf("WE are here\n");
-			printf("HERe si the value we are writing: %lx\n", CURRENT_REGS.MEM_WB.fetched_data);
-			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.fetched_data;
-		}
-	}
-	stat_inst_retire++;
-}
-
-void pipe_stage_mem() {
-	if (CURRENT_REGS.EX_MEM.instruction == 0) {
-		printf("Memmeory Stage Skipped\n");
-		clear_MEM_WB_REGS();
-		return;
-	}
-
-	clear_MEM_WB_REGS();
-	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.EX_MEM.instruction);
-	printf("MEMORY STAGE FOR INSTRUCTION: %lx\n", CURRENT_REGS.EX_MEM.instruction);
-	if (INSTRUCTION_HOLDER.format == 1) {
-		//printf ("SOMETHING WEIRD HAPPENING - R INSTR SHOULDNT GO TO MEM\n");
-	} else if (INSTRUCTION_HOLDER.format == 2) {
-		//printf ("SOMETHING WEIRD HAPPENING - I INSTR SHOULDNT GO TO MEM\n");
-	} else if (INSTRUCTION_HOLDER.format == 3) {
-		// load
-		if (INSTRUCTION_HOLDER.opcode == 0x7C2 || INSTRUCTION_HOLDER.opcode == 0x5C2) {
-			CURRENT_REGS.MEM_WB.fetched_data = mem_read_64(CURRENT_REGS.EX_MEM.ALU_result);
-		} else if (INSTRUCTION_HOLDER.opcode == 0x1C2 ) {
-			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,7,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
-		} else if (INSTRUCTION_HOLDER.opcode == 0x3C2) {
-			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,15,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
-		} else /* store */{
-			if (INSTRUCTION_HOLDER.opcode != STUR) {
-				mem_write_32(CURRENT_REGS.EX_MEM.ALU_result, CURRENT_REGS.EX_MEM.data_to_write);
-			} else {
-				mem_write_64(CURRENT_REGS.EX_MEM.ALU_result, CURRENT_REGS.EX_MEM.data_to_write);
+		if (depend_holder.format == 1) {	
+			if (ind_target == depend_holder.Rm) {
+				return 2;
+			}
+		} else if (depend_holder.opcode == STUR || depend_holder.opcode == STURH ||
+			depend_holder.opcode == STURB || depend_holder.opcode == STURW ||
+			(depend_holder.opcode >= 0x5A0 && depend_holder.opcode <= 0x5AF)) {
+			if (ind_target == depend_holder.Rt) {
+				return 2;
 			}
 		}
-	} else if (INSTRUCTION_HOLDER.format == 4) {
-		//printf("SOMETHING WEIRD HAPPENNING - BR SHOULDNT GO TO MEM\n");
-	} else if (INSTRUCTION_HOLDER.format == 5) {
-		//printf("SOMETHING WEIRD HAPPENNING - CB SHOULDNT GO TO MEM\n");
-	} else if (INSTRUCTION_HOLDER.format == 6) {
-		//printf("SOMETHING WEIRD HAPPENNING - MOVZ SHOULDNT GO TO MEM\n");
 	}
-	CURRENT_REGS.MEM_WB.ALU_result = CURRENT_REGS.EX_MEM.ALU_result;
-	CURRENT_REGS.MEM_WB.instruction = CURRENT_REGS.EX_MEM.instruction;
+	return 0;
 }
 
 /******************************* R EXECUTION INSTRUCTIONS HANLDERS *******************************/
@@ -424,7 +263,13 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int flag_Z = CURRENT_STATE.FLAG_Z;
 	int result = 0; 
 
-	if (new_flags()) {
+	parsed_instruction_holder MEM_instruct = get_holder(CURRENT_REGS.EX_MEM.instruction);
+	if (MEM_instruct.opcode == ADDS || MEM_instruct.opcode == (ADDS + 1) ||
+		MEM_instruct.opcode == ANDS || MEM_instruct.opcode == SUBS || 
+		MEM_instruct.opcode == (SUBS + 1) || MEM_instruct.opcode == ADDIS || 
+		MEM_instruct.opcode == (ADDIS + 1) || MEM_instruct.opcode == SUBIS || 
+		MEM_instruct.opcode == (SUBIS + 1)) {
+
 		flag_Z = (CURRENT_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
 		flag_N = (CURRENT_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
 	}
@@ -484,48 +329,171 @@ void handle_cbz() {
 	}
 }
 
+/************************************ END OF HELPERS ************************************/
+
+void pipe_init() {
+    memset(&CURRENT_STATE, 0, sizeof(CPU_State));
+    CURRENT_STATE.PC = 0x00400000;
+}
+
+void pipe_cycle() {
+	//printf("--------CYCLE START-----\n");
+	START_REGS = CURRENT_REGS;
+	pipe_stage_wb();
+	pipe_stage_mem();
+	pipe_stage_execute();
+	pipe_stage_decode();
+	pipe_stage_fetch();
+	reset_bubble();
+	//printf("--------CYCLE END-------\n\n");
+}
+
+void pipe_stage_wb() {
+	if (CURRENT_REGS.MEM_WB.instruction == 0) {
+	//	printf("Write Back Stage Skipped\n");
+		return;
+	} else if (CURRENT_REGS.MEM_WB.instruction == HLT) {
+		printf("FINITO\n");
+		RUN_BIT = 0;
+		return;
+	}
+	printf("WRITING INSTRUCTION: %lx\n", CURRENT_REGS.MEM_WB.instruction);
+
+	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.MEM_WB.instruction);
+	int WRITE_TO = -1;
+
+	if (INSTRUCTION_HOLDER.format == 1) {
+		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+		if (INSTRUCTION_HOLDER. opcode == ADDS || INSTRUCTION_HOLDER.opcode == (ADDS + 1) ||
+			INSTRUCTION_HOLDER.opcode == ANDS || INSTRUCTION_HOLDER.opcode == SUBS || 
+			INSTRUCTION_HOLDER.opcode == (SUBS + 1)) {
+			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
+		}
+	} else if (INSTRUCTION_HOLDER.format == 2) {
+		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+		
+		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
+			INSTRUCTION_HOLDER.opcode == SUBIS || INSTRUCTION_HOLDER.opcode == (SUBIS + 1)) {
+			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
+			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
+		}
+	} else if (INSTRUCTION_HOLDER.format == 3) {
+		if ((INSTRUCTION_HOLDER.opcode == LDUR_64) || (INSTRUCTION_HOLDER.opcode == LDUR_32) ||
+			(INSTRUCTION_HOLDER.opcode == LDURH) || (INSTRUCTION_HOLDER.opcode == LDURB)) {
+			WRITE_TO = INSTRUCTION_HOLDER.Rt;
+		}
+	} else if (INSTRUCTION_HOLDER.format == 4 || INSTRUCTION_HOLDER.format == 5) {
+		//printf("SOMETHING WEIRD HAPPENING - CB SHOULDNT WRITE BACK\n");
+	} else if (INSTRUCTION_HOLDER.format == 6) {
+		WRITE_TO = INSTRUCTION_HOLDER.Rd;
+	}
+
+	if (WRITE_TO != -1) {
+		if (INSTRUCTION_HOLDER.format != 3) { 
+			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
+		} else {
+			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.fetched_data;
+		}
+	}
+	stat_inst_retire++;
+}
+
+void pipe_stage_mem() {
+	if (CURRENT_REGS.EX_MEM.instruction == 0 ) {
+		//printf("Memmeory Stage Skipped\n");
+		clear_MEM_WB_REGS();
+		return;
+	} else if ( CURRENT_REGS.EX_MEM.instruction == HLT) {
+		clear_MEM_WB_REGS();
+		CURRENT_REGS.MEM_WB.instruction = CURRENT_REGS.EX_MEM.instruction;
+		return;
+	}
+
+	clear_MEM_WB_REGS();
+	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.EX_MEM.instruction);
+	//printf("MEMORY STAGE FOR INSTRUCTION: %lx\n", CURRENT_REGS.EX_MEM.instruction);
+	
+	if (INSTRUCTION_HOLDER.format == 1) {
+		//printf ("SOMETHING WEIRD HAPPENING - R INSTR SHOULDNT GO TO MEM\n");
+	} else if (INSTRUCTION_HOLDER.format == 2) {
+		//printf ("SOMETHING WEIRD HAPPENING - I INSTR SHOULDNT GO TO MEM\n");
+	} else if (INSTRUCTION_HOLDER.format == 3) {
+		// load
+		if (INSTRUCTION_HOLDER.opcode == 0x7C2 || INSTRUCTION_HOLDER.opcode == 0x5C2) {
+			CURRENT_REGS.MEM_WB.fetched_data = mem_read_64(CURRENT_REGS.EX_MEM.ALU_result);
+		} else if (INSTRUCTION_HOLDER.opcode == 0x1C2 ) {
+			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,7,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
+		} else if (INSTRUCTION_HOLDER.opcode == 0x3C2) {
+			CURRENT_REGS.MEM_WB.fetched_data = get_memory_segment(0,15,mem_read_32(CURRENT_REGS.EX_MEM.ALU_result));
+		} else /* store */{
+			if (INSTRUCTION_HOLDER.opcode != STUR) {
+				mem_write_32(CURRENT_REGS.EX_MEM.ALU_result, CURRENT_REGS.EX_MEM.data_to_write);
+			} else {
+				mem_write_64(CURRENT_REGS.EX_MEM.ALU_result, CURRENT_REGS.EX_MEM.data_to_write);
+			}
+		}
+	} else if ((INSTRUCTION_HOLDER.format == 4) || (INSTRUCTION_HOLDER.format == 5) || 
+		(INSTRUCTION_HOLDER.format == 6)) {
+		//printf("SOMETHING WEIRD HAPPENNING - MOVZ SHOULDNT GO TO MEM\n");
+	}
+	CURRENT_REGS.MEM_WB.ALU_result = CURRENT_REGS.EX_MEM.ALU_result;
+	CURRENT_REGS.MEM_WB.instruction = CURRENT_REGS.EX_MEM.instruction;
+}
+
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
 	if (CURRENT_REGS.ID_EX.instruction == 0) {
-		printf("Execute Skipped\n");
+		//printf("Execute Skipped\n");
 		clear_EX_MEM_REGS();
+		return;
+	} else if (CURRENT_REGS.ID_EX.instruction == HLT) {
+		FETCH_MORE = 0;
+		clear_EX_MEM_REGS();
+		CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 		return;
 	}
 
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
-	printf("EXECUTING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
-	// CPU_State NEXT_STATE = CURRENT_STATE;
+	//printf("EXECUTING INSTRUCTION: %lx\n", CURRENT_REGS.ID_EX.instruction);
 	
 	//check if there is immediate dependicies (EX/MEM to ID/EX), then check dependicies between (MEM/WB and ID/EX)
-	forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
-	// if (CURRENT_REGS.FU.reg == 0) {
-	// 	forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
-	// 	if (CURRENT_REGS.FU.reg != 0) {
-	// 		parsed_instruction_holder WB_instruct = get_holder(CURRENT_REGS.MEM_WB.instruction);
-	// 		if (WB_instruct.opcode == LDURH || WB_instruct.opcode == LDUR_64 ||
-	// 			WB_instruct.opcode == LDUR_32 || WB_instruct.opcode == LDURB) {
-	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.fetched_data;
-	// 		} else {
-	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.ALU_result;
-	// 		}
-	// 	}
-	// } else {
-	// 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
-	// }
+	int MEM_forward = forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
+	int WB_forward = forward(CURRENT_REGS.ID_EX.instruction, START_REGS.MEM_WB.instruction);
 
-	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
-	if (CURRENT_REGS.FU.reg == 1) {
-		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.FU.forwarded_value;
-	} else if (CURRENT_REGS.FU.reg == 2) {
-		CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.FU.forwarded_value;
+	//printf("This is Mem forward: %u\n", MEM_forward);
+	//printf("This is WB forward: %u\n", WB_forward);
+
+	//printf("MEM - Instruction 1: %lx <----- Instruction 2: %lx\n", CURRENT_REGS.EX_MEM.instruction, CURRENT_REGS.ID_EX.instruction);
+	if (MEM_forward == 1) {
+		CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_REGS.EX_MEM.ALU_result;
+	} else if (MEM_forward == 2) {
+		CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_REGS.EX_MEM.ALU_result;
 	}
-	clear_Forwarding_Unit();
 
-
-	if (CURRENT_REGS.ID_EX.instruction == HLT) {
-		FETCH_MORE = 0;
-		clear_EX_MEM_REGS();
+	if ((WB_forward != 0) && (MEM_forward != WB_forward)) {
+		// printf("WB - Instruction 1: %lx  <----- Instruction 2: %lx\n", START_REGS.MEM_WB.instruction, CURRENT_REGS.ID_EX.instruction);
+		// print_instr(get_holder(CURRENT_REGS.ID_EX.instruction));
+		// print_instr(get_holder(START_REGS.MEM_WB.instruction));
+		// printf("THis is the getWrite: %lx\n", get_regWrite(get_holder(START_REGS.MEM_WB.instruction).opcode));
+		// printf("This is being writtin: %lx\n", START_REGS.MEM_WB.ALU_result);
+		if (WB_forward == 1) {
+			CURRENT_REGS.ID_EX.primary_data_holder = START_REGS.MEM_WB.ALU_result;
+		} else {
+			CURRENT_REGS.ID_EX.secondary_data_holder = START_REGS.MEM_WB.ALU_result;
+		}
 	}
+
+	if (CURRENT_REGS.EX_MEM.instruction == 0) {
+		int bubble_result = hazard_detection_unit(CURRENT_REGS.ID_EX.instruction, START_REGS.MEM_WB.instruction);
+		if (bubble_result == 1) {
+			CURRENT_REGS.ID_EX.primary_data_holder = START_REGS.MEM_WB.fetched_data;
+		} else if (bubble_result == 2) {
+			CURRENT_REGS.ID_EX.secondary_data_holder = START_REGS.MEM_WB.fetched_data;
+		}	
+	}
+
+
 
 	if (HOLDER.format == 1) {
 		clear_EX_MEM_REGS();
@@ -614,17 +582,21 @@ void pipe_stage_execute() {
 
 void pipe_stage_decode() {
 	if (CURRENT_REGS.IF_ID.instruction == 0) {
-		printf("SKIPPING DECODE\n");
+		//printf("SKIPPING DECODE\n");
 		clear_ID_EX_REGS();
+		return;
+	} else if (CURRENT_REGS.IF_ID.instruction == HLT) {
+		clear_ID_EX_REGS();
+		CURRENT_REGS.ID_EX.instruction = CURRENT_REGS.IF_ID.instruction;
 		return;
 	}
 
 
 	parsed_instruction_holder INSTRUCTION_HOLDER = get_holder(CURRENT_REGS.IF_ID.instruction);
-	printf("DECODING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
+	//printf("DECODING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
 
 	if (CURRENT_REGS.ID_EX.instruction != 0) {
-		hazard_detection_unit(CURRENT_REGS.IF_ID.instruction, CURRENT_REGS.ID_EX.instruction);
+		BUBBLE = (hazard_detection_unit(CURRENT_REGS.IF_ID.instruction, CURRENT_REGS.ID_EX.instruction) != 0) ? 1 : 0;
 	}
 
 	// DON'T MOVE PLEASE
@@ -633,7 +605,7 @@ void pipe_stage_decode() {
 		if (INSTRUCTION_HOLDER.format == 1) { // R
 			CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 			CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rm];
-			printf("This is the secondary data holder: %lx\n", CURRENT_REGS.ID_EX.secondary_data_holder);
+			//printf("This is the secondary data holder: %lx\n", CURRENT_REGS.ID_EX.secondary_data_holder);
 			if (INSTRUCTION_HOLDER.opcode == 0x69B) {
 				CURRENT_REGS.ID_EX.secondary_data_holder = INSTRUCTION_HOLDER.shamt;
 			} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
@@ -644,8 +616,7 @@ void pipe_stage_decode() {
 		} else if (INSTRUCTION_HOLDER.format == 2) { // I
 		 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 		 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
-			printf("This is the secondary data holder: %lx\n", CURRENT_REGS.ID_EX.secondary_data_holder);
-
+			
 		} else if (INSTRUCTION_HOLDER.format == 3) { // D
 			CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 			CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.DT_address;
@@ -679,10 +650,8 @@ void pipe_stage_fetch() {
 	if (FETCH_MORE != 0 && BUBBLE != 1) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-		printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
+		//printf("FETCHING INSTRUCTION: %lx\n", CURRENT_REGS.IF_ID.instruction);
 		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
 		CURRENT_STATE.PC += 4;
-	} else {
-		printf("FETCHING SKIPPED\n");
-	}
+	} 
 }
