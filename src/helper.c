@@ -226,7 +226,7 @@ void print_instr(parsed_instruction_holder HOLDER) {
 		printf("I instruction:\n");
 		printf("	Opcode: %x \n", HOLDER.opcode);
 		printf("	ALU immediate: %x \n", HOLDER.ALU_immediate);
-		printf("	Rn: %x \n", HOLDER.Rn);
+		printf("	Rn: %d \n", HOLDER.Rn);
 		printf("	Rd: %x \n", HOLDER.Rd);
 	} else if (HOLDER.format == 3) {
 		printf("D instruction:\n");
@@ -253,17 +253,89 @@ void print_instr(parsed_instruction_holder HOLDER) {
 
 
 
-// if (CURRENT_REGS.FU.reg == 0) {
-	// 	forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.MEM_WB.instruction);
-	// 	if (CURRENT_REGS.FU.reg != 0) {
-	// 		parsed_instruction_holder WB_instruct = get_holder(CURRENT_REGS.MEM_WB.instruction);
-	// 		if (WB_instruct.opcode == LDURH || WB_instruct.opcode == LDUR_64 ||
-	// 			WB_instruct.opcode == LDUR_32 || WB_instruct.opcode == LDURB) {
-	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.fetched_data;
-	// 		} else {
-	// 			CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.MEM_WB.ALU_result;
-	// 		}
-	// 	}
-	// } else {
-	// 	CURRENT_REGS.FU.forwarded_value = CURRENT_REGS.EX_MEM.ALU_result;
-	// }
+void print_operation(uint32_t instruction) {
+	if (!instruction) {
+		printf("NULL\n");
+		return;
+	}
+
+	parsed_instruction_holder HOLDER = get_holder(instruction);
+	// HLT
+	if (instruction == 0xd4400000) {
+		printf("HLT\n");
+	} else if (HOLDER.opcode == 0x458 || HOLDER.opcode == 0x459) {
+		printf("ADD: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode >= 0x488 && HOLDER.opcode <= 0x489) {
+		printf("ADDI: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+	} else if (HOLDER.opcode == 0x558 || HOLDER.opcode == 0x559) {
+		printf("ADDS: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode >= 0x588 && HOLDER.opcode <= 0x589) {
+		printf("ADDIS: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+	} else if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
+		printf("CBNZ: Rt: %d COND BR address: %x \n", HOLDER.Rt, HOLDER.COND_BR_address);
+	} else if (HOLDER.opcode >= 0x5A0 && HOLDER.opcode <= 0x5A7) {
+		printf("CBZ: Rt: %d COND BR address: %x \n", HOLDER.Rt, HOLDER.COND_BR_address);
+	} else if (HOLDER.opcode == 0x450) {
+		printf("AND: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x750) {
+		printf("ANDS: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x650) {
+		printf("EOR: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x550) {
+		printf("ORR: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x7C2) {
+		printf("LDUR 64 BITS: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x5C2) {
+		printf("LDUR 32 BITS: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x1C2) {
+		printf("LDURB: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x3C2) {
+		printf("LDURH: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	}  else if (HOLDER.opcode == 0x69B) {
+		if (get_instruction_segment(10,15, instruction) == 0x3f) {
+			printf("LSR\n");
+		} else {
+			printf("LSL\n");
+		}
+	} else if (HOLDER.opcode == 0x69A) {
+		if (get_instruction_segment(10,15, instruction) != 0x3F) {
+			printf("LSL\n");
+		} else {
+			printf("LSR\n");
+		}
+	} else if (HOLDER.opcode >= 0x694 && HOLDER.opcode <= 0x697) {
+		printf("MOVZ: MOV_immediate: %x, Rd: %d\n", HOLDER.MOV_immediate, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x7C0) {
+		printf("STUR: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x1C0) {
+		printf("STURB: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x3C0) {
+		printf("STURH: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x5C0) {
+		printf("STURW: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
+	} else if (HOLDER.opcode == 0x658 || HOLDER.opcode == 0x659) {	
+		printf("SUB: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x688 || HOLDER.opcode == 0x689) {
+		printf("SUBI: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+	} else if (HOLDER.opcode == 0x758 || HOLDER.opcode == 0x759) {
+		printf("SUBS: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x788 || HOLDER.opcode == 0x789) {
+		printf("SUBIS: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+	} else if (HOLDER.opcode == 0x4D8) {
+		printf("MUL: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+	} else if (HOLDER.opcode == 0x6B0) {
+		printf("BR: \n");
+	} else if (HOLDER.opcode >= 0x0A0 && HOLDER.opcode <= 0x0BF) {
+		printf("B\n");
+	} else if (HOLDER.opcode >= 0x2A0 && HOLDER.opcode <= 0x2A7) {
+		uint32_t cond = (HOLDER.Rt & 14) >> 1;
+		if (cond == 0) {
+			printf("HANDLING BEQ or BNE\n");
+		} else if (cond == 5) {
+			printf("HANDLING BGE or BLT\n");
+		} else if (cond == 6) {
+			printf("HANDLING BGT or BLE\n");
+		}
+	}
+
+}
