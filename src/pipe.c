@@ -602,7 +602,6 @@ void pipe_stage_execute() {
 
 
 void pipe_stage_decode() {
-
 	printf("Decode -----------> ");
 	print_operation(CURRENT_REGS.IF_ID.instruction);
 
