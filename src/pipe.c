@@ -492,11 +492,6 @@ void pipe_stage_execute() {
 	}
 
 	if ((WB_forward != 0) && (MEM_forward != WB_forward)) {
-		// printf("WB - Instruction 1: %lx  <----- Instruction 2: %lx\n", START_REGS.MEM_WB.instruction, CURRENT_REGS.ID_EX.instruction);
-		// print_instr(get_holder(CURRENT_REGS.ID_EX.instruction));
-		// print_instr(get_holder(START_REGS.MEM_WB.instruction));
-		// printf("THis is the getWrite: %lx\n", get_regWrite(get_holder(START_REGS.MEM_WB.instruction).opcode));
-		// printf("This is being writtin: %lx\n", START_REGS.MEM_WB.ALU_result);
 		if (WB_forward == 1) {
 			CURRENT_REGS.ID_EX.primary_data_holder = START_REGS.MEM_WB.ALU_result;
 		} else {
