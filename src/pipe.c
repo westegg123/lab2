@@ -583,10 +583,12 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
 	} else if (HOLDER.format == 4) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		BRANCH_STALL = 1;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
+		if (CURRENT_STATE.PC != (CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate)) {
+			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			BRANCH_STALL = 1;
+			clear_IF_ID_REGS();
+			clear_ID_EX_REGS();
+		}
 	} else if (HOLDER.format == 5) {
 		if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
 			handle_cbnz();
