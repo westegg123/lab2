@@ -168,7 +168,10 @@ int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (ind_target == depend_holder.Rn) {
-			return 1;
+			if (depend_holder.format != 4 && depend_holder.format != 5 &&
+				depend_holder.format != 6) {
+				return 1;
+			}
 		}
 
 		if (depend_holder.format == 1) {	
@@ -284,10 +287,6 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		//printf("updating flag\n");
 		flag_Z = (START_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
 		flag_N = (START_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
-
-		//flag_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
-		//flag_N = (CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
-	
 	}
 
 	if (cond == 0) {
@@ -641,7 +640,6 @@ void pipe_stage_decode() {
 			CURRENT_REGS.ID_EX.secondary_data_holder = 
 				get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
 		}
-
 	} else if (INSTRUCTION_HOLDER.format == 2) { // I
 	 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 	 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
