@@ -126,6 +126,10 @@ int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (depend_holder.format == 1) {	
+			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR) {
+				return 0;
+
+			}
 			if (ind_holder.Rt == depend_holder.Rm) {
 				return 2;
 			}
@@ -168,6 +172,9 @@ int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (depend_holder.format == 1) {	
+			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR) {
+				return 0;
+			} 
 			if (ind_target == depend_holder.Rm) {
 				return 2;
 			}
@@ -209,11 +216,13 @@ void handle_orr() {
 }
 
 void handle_lsl() {
-	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder << (0x3F - CURRENT_REGS.ID_EX.secondary_data_holder);
+	CURRENT_REGS.EX_MEM.ALU_result = ((uint64_t)CURRENT_REGS.ID_EX.primary_data_holder) << (0x3F - CURRENT_REGS.ID_EX.secondary_data_holder);
 }
 
 void handle_lsr() {
+	printf("This is LSR: %lx >> %lx\n",CURRENT_REGS.ID_EX.primary_data_holder, CURRENT_REGS.ID_EX.secondary_data_holder); 
 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder >> CURRENT_REGS.ID_EX.secondary_data_holder;
+	printf("This is the result: %lx\n",CURRENT_REGS.EX_MEM.ALU_result); 
 }
 
 void handle_sub() {
@@ -481,8 +490,8 @@ void pipe_stage_execute() {
 	int MEM_forward = forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
 	int WB_forward = forward(CURRENT_REGS.ID_EX.instruction, START_REGS.MEM_WB.instruction);
 
-	//printf("This is Mem forward: %u\n", MEM_forward);
-	//printf("This is WB forward: %u\n", WB_forward);
+	printf("This is Mem forward: %u\n", MEM_forward);
+	printf("This is WB forward: %u\n", WB_forward);
 
 	//printf("MEM - Instruction 1: %lx <----- Instruction 2: %lx\n", CURRENT_REGS.EX_MEM.instruction, CURRENT_REGS.ID_EX.instruction);
 	if (MEM_forward == 1) {
