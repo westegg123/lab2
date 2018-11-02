@@ -1,8 +1,8 @@
 .text
 movz X9, 10
 movz X10, 10
-cmp X9, X10
-beq cow
+add X0, X10, 4
+cbnz X10, cow 
 
 foo:
 HLT 0
