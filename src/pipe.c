@@ -122,14 +122,16 @@ int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 
 	if (get_memRead(ind_holder.opcode)) {
 		if (ind_holder.Rt == depend_holder.Rn) {
-			return 1;
+			if (depend_holder.format != 4 && depend_holder.format != 5 &&
+				depend_holder.format != 6) {
+				return 1;
+			}
 		}
 
 		if (depend_holder.format == 1) {	
 			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR 
 				|| depend_holder.opcode == BR) {
 				return 0;
-
 			}
 			if (ind_holder.Rt == depend_holder.Rm) {
 				return 2;
@@ -164,7 +166,7 @@ int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 		uint32_t ind_target = ind_holder.Rd;
 		if (ind_holder.format == 3) {
 			ind_target = ind_holder.Rt;
-		} else if (ind_holder.format == 5) {
+		} else if (ind_holder.format == 5 || ind_holder.format == 4) {
 			return 0;
 		}
 
