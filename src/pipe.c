@@ -126,7 +126,8 @@ int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (depend_holder.format == 1) {	
-			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR) {
+			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR 
+				|| depend_holder.opcode == BR) {
 				return 0;
 
 			}
@@ -175,7 +176,8 @@ int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
 		}
 
 		if (depend_holder.format == 1) {	
-			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR) {
+			if (depend_holder.opcode == LSL || depend_holder.opcode == LSR ||
+				depend_holder.opcode == BR) {
 				return 0;
 			} 
 			if (ind_target == depend_holder.Rm) {
@@ -236,11 +238,8 @@ void handle_subs() {
 
 // NEED TO CHECK BR
 void handle_br() {
-	printf("THIS IS WHERE THE PC IS AT: %f\n", CURRENT_STATE.PC);
 	if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.primary_data_holder) {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.primary_data_holder;
-		printf("This is the primary_data_holder: %lx\n", CURRENT_REGS.ID_EX.primary_data_holder);
-		print_operation(mem_read_32(CURRENT_STATE.PC));
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 		BUBBLE = 1;
@@ -388,6 +387,11 @@ void pipe_stage_wb() {
 			CURRENT_STATE.FLAG_N = ((long)CURRENT_REGS.MEM_WB.ALU_result < 0) ? 1 : 0;
 			CURRENT_STATE.FLAG_Z = (CURRENT_REGS.MEM_WB.ALU_result == 0) ? 1 : 0;
 		}
+
+		if (INSTRUCTION_HOLDER.opcode == BR) {
+			WRITE_TO = -1;
+		}
+
 	} else if (INSTRUCTION_HOLDER.format == 2) {
 		WRITE_TO = INSTRUCTION_HOLDER.Rd;
 		if (INSTRUCTION_HOLDER.opcode == ADDIS || INSTRUCTION_HOLDER.opcode == (ADDIS + 1) ||
