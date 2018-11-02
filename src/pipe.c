@@ -276,8 +276,6 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int result = 0; 
 
 	parsed_instruction_holder MEM_instruct = get_holder(START_REGS.EX_MEM.instruction);
-	printf("MEM INSTRUCT OPCODE:");
-	print_operation(START_REGS.EX_MEM.instruction);
 	if (MEM_instruct.opcode == ADDS || MEM_instruct.opcode == (ADDS + 1) ||
 		MEM_instruct.opcode == ANDS || MEM_instruct.opcode == SUBS || 
 		MEM_instruct.opcode == (SUBS + 1) || MEM_instruct.opcode == ADDIS || 
@@ -489,8 +487,8 @@ void pipe_stage_execute() {
 	int MEM_forward = forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
 	int WB_forward = forward(CURRENT_REGS.ID_EX.instruction, START_REGS.MEM_WB.instruction);
 
-	printf("This is Mem forward: %u\n", MEM_forward);
-	printf("This is WB forward: %u\n", WB_forward);
+	//printf("This is Mem forward: %u\n", MEM_forward);
+	//printf("This is WB forward: %u\n", WB_forward);
 
 	//printf("MEM - Instruction 1: %lx <----- Instruction 2: %lx\n", CURRENT_REGS.EX_MEM.instruction, CURRENT_REGS.ID_EX.instruction);
 	if (MEM_forward == 1) {
@@ -518,7 +516,6 @@ void pipe_stage_execute() {
 	}
 
 
-
 	clear_EX_MEM_REGS();
 	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	if (HOLDER.format == 1) {
@@ -536,14 +533,18 @@ void pipe_stage_execute() {
 			handle_orr();
 		} else if (HOLDER.opcode == 0x69B) {
 			if (get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction) == 0x3F) {
+				CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(16,21, CURRENT_REGS.ID_EX.instruction);
 				handle_lsr();
 		} 	else {
+				CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction);
 				handle_lsl();
 			}
 		} else if (HOLDER.opcode == 0x69A) {
 			if (get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction) != 0x3F) {
+				CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(10,15, CURRENT_REGS.ID_EX.instruction);
 				handle_lsl();
 		} 	else {
+				CURRENT_REGS.ID_EX.secondary_data_holder = get_instruction_segment(16,21, CURRENT_REGS.ID_EX.instruction);
 				handle_lsr();
 			}	
 		} else if (HOLDER.opcode == 0x658 || HOLDER.opcode == 0x659) {

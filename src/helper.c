@@ -293,15 +293,15 @@ void print_operation(uint32_t instruction) {
 		printf("LDURH: DR address: %x, Rn: %d\n", HOLDER.DT_address, HOLDER.Rn);
 	}  else if (HOLDER.opcode == 0x69B) {
 		if (get_instruction_segment(10,15, instruction) == 0x3f) {
-			printf("LSR\n");
+			printf("LSL BUT LSR\n");
 		} else {
-			printf("LSL\n");
+			printf("LSL AND LSL\n");
 		}
 	} else if (HOLDER.opcode == 0x69A) {
 		if (get_instruction_segment(10,15, instruction) != 0x3F) {
-			printf("LSL\n");
+			printf("LSL BUT LSR\n");
 		} else {
-			printf("LSR\n");
+			printf("LSR AND LSR\n");
 		}
 	} else if (HOLDER.opcode >= 0x694 && HOLDER.opcode <= 0x697) {
 		printf("MOVZ: MOV_immediate: %x, Rd: %d\n", HOLDER.MOV_immediate, HOLDER.Rd);
