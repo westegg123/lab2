@@ -223,9 +223,7 @@ void handle_lsl() {
 }
 
 void handle_lsr() {
-	printf("This is LSR: %lx >> %lx\n",CURRENT_REGS.ID_EX.primary_data_holder, CURRENT_REGS.ID_EX.secondary_data_holder); 
 	CURRENT_REGS.EX_MEM.ALU_result = CURRENT_REGS.ID_EX.primary_data_holder >> CURRENT_REGS.ID_EX.secondary_data_holder;
-	printf("This is the result: %lx\n",CURRENT_REGS.EX_MEM.ALU_result); 
 }
 
 void handle_sub() {
@@ -238,9 +236,15 @@ void handle_subs() {
 
 // NEED TO CHECK BR
 void handle_br() {
-	CURRENT_STATE.PC = CURRENT_REGS.ID_EX.primary_data_holder;
-	clear_IF_ID_REGS();
-	clear_ID_EX_REGS();
+	printf("THIS IS WHERE THE PC IS AT: %f\n", CURRENT_STATE.PC);
+	if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.primary_data_holder) {
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.primary_data_holder;
+		printf("This is the primary_data_holder: %lx\n", CURRENT_REGS.ID_EX.primary_data_holder);
+		print_operation(mem_read_32(CURRENT_STATE.PC));
+		clear_IF_ID_REGS();
+		clear_ID_EX_REGS();
+		BUBBLE = 1;
+	}
 }
 
 void handle_mul() {
@@ -349,7 +353,7 @@ void pipe_init() {
 }
 
 void pipe_cycle() {
-	printf("--------CYCLE START (%d)-----\n", stat_cycles);
+	printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
 	START_REGS = CURRENT_REGS;
 	pipe_stage_wb();
 	pipe_stage_mem();
@@ -640,6 +644,10 @@ void pipe_stage_decode() {
 		} else if (INSTRUCTION_HOLDER.opcode == 0x69A) {
 			CURRENT_REGS.ID_EX.secondary_data_holder = 
 				get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
+		}
+
+		if (INSTRUCTION_HOLDER.opcode == BR) {
+			BRANCH_STALL = 1;
 		}
 	} else if (INSTRUCTION_HOLDER.format == 2) { // I
 	 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
