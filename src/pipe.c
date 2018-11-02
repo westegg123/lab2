@@ -316,7 +316,7 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	}
 
 	if (result == 1) {
-		printf("BRANCHING\n");
+		//printf("BRANCHING\n");
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 		BRANCH_STALL = 1;
 		clear_IF_ID_REGS();
@@ -489,7 +489,6 @@ void pipe_stage_execute() {
 
 	parsed_instruction_holder HOLDER = get_holder(CURRENT_REGS.ID_EX.instruction);
 	
-
 
 	//check if there is immediate dependicies (EX/MEM to ID/EX), then check dependicies between (MEM/WB and ID/EX)
 	int MEM_forward = forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
