@@ -1,0 +1,49 @@
+lab2-grade.txt
+---------
+Section 1: cycle-by-cycle comparison
+Test: step1-a-input.x
+Reference simulator cycle count: 12
+Number of matching cycles: 12
+Points awarded: 10 / 10
+
+Test: step1-b-input.x
+Reference simulator cycle count: 20
+Number of matching cycles: 20
+Points awarded: 10 / 10
+
+Test: step2-a-input.x
+Reference simulator cycle count: 13
+Number of matching cycles: 13
+Points awarded: 12.5 / 12.5
+
+Test: step2-b-input.x
+Reference simulator cycle count: 14
+Number of matching cycles: 14
+Points awarded: 12.5 / 12.5
+
+Test: step3-input.x
+Reference simulator cycle count: 42
+Number of matching cycles: 36
+Points awarded: 10.5 / 15
+
+Test: final_test.x
+Reference simulator cycle count: 103
+Number of matching cycles: 6
+Points awarded: 0 / 15
+
+Test: final_test-2.x
+Reference simulator cycle count: 113
+Number of matching cycles: 108
+Points awarded: 10.5 / 15
+
+Section 1 score: 66.0 / 90
+
+Section 2: final result comparison
+Correct test: hidden1.x
+Points awarded: 5 / 5
+Incorrect test: hidden2.x
+Points awarded: 0 / 5
+
+Section 2 score: 5 / 10
+
+Total score: 71.0 / 100

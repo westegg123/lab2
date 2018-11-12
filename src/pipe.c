@@ -317,30 +317,54 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 
 	if (result == 1) {
 		//printf("BRANCHING\n");
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		BRANCH_STALL = 1;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
+		// CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		// BRANCH_STALL = 1;
+		// clear_IF_ID_REGS();
+		// clear_ID_EX_REGS();
+		if (CURRENT_STATE.PC != (CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate)) {
+			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			clear_IF_ID_REGS();
+			clear_ID_EX_REGS();
+			BUBBLE = 1;
+		}
+	} else {
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
 }
 
 
 void handle_cbnz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder != 0) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		BRANCH_STALL = 1;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
+		// CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		// BRANCH_STALL = 1;
+		// clear_IF_ID_REGS();
+		// clear_ID_EX_REGS();
+		if (CURRENT_STATE.PC != (CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate)) {
+			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			clear_IF_ID_REGS();
+			clear_ID_EX_REGS();
+			BUBBLE = 1;
+		}
+	} else {
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
 }
 
 
 void handle_cbz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder == 0) {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		BRANCH_STALL = 1;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
+		// CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+		// BRANCH_STALL = 1;
+		// clear_IF_ID_REGS();
+		// clear_ID_EX_REGS();
+		if (CURRENT_STATE.PC != (CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate)) {
+			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			clear_IF_ID_REGS();
+			clear_ID_EX_REGS();
+			BUBBLE = 1;
+		}
+	} else {
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
 }
 
@@ -352,7 +376,7 @@ void pipe_init() {
 }
 
 void pipe_cycle() {
-	//printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
+	printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
 	START_REGS = CURRENT_REGS;
 	pipe_stage_wb();
 	pipe_stage_mem();
@@ -360,12 +384,12 @@ void pipe_cycle() {
 	pipe_stage_decode();
 	pipe_stage_fetch();
 	reset_bubble();
-//	printf("--------CYCLE END-------\n\n");
+	printf("-------- CYCLE END (%d, %lx) -------\n\n", (stat_cycles + 1), CURRENT_STATE.PC);
 }
 
 void pipe_stage_wb() {
-	//printf("Write BACK -----------> ");
-	//print_operation(CURRENT_REGS.MEM_WB.instruction);
+	printf("Write BACK -----------> ");
+	print_operation(CURRENT_REGS.MEM_WB.instruction);
 	if (CURRENT_REGS.MEM_WB.instruction == 0) {
 		//printf("Write Back Stage Skipped\n");
 		return;
@@ -422,8 +446,8 @@ void pipe_stage_wb() {
 }
 
 void pipe_stage_mem() {
-	//printf("Memory -----------> ");
-	//print_operation(CURRENT_REGS.EX_MEM.instruction);
+	printf("Memory -----------> ");
+	print_operation(CURRENT_REGS.EX_MEM.instruction);
 
 	if (CURRENT_REGS.EX_MEM.instruction == 0) {
 		//printf("Memmeory Stage Skipped\n");
@@ -467,8 +491,8 @@ void pipe_stage_mem() {
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
-	//printf("Execute -----------> ");
-	//print_operation(CURRENT_REGS.ID_EX.instruction);
+	printf("Execute -----------> ");
+	print_operation(CURRENT_REGS.ID_EX.instruction);
 
 	if (CURRENT_REGS.ID_EX.instruction == 0) {
 		//printf("Execute Skipped\n");
@@ -613,8 +637,8 @@ void pipe_stage_execute() {
 
 
 void pipe_stage_decode() {
-	//printf("Decode -----------> ");
-	//print_operation(CURRENT_REGS.IF_ID.instruction);
+	printf("Decode -----------> ");
+	print_operation(CURRENT_REGS.IF_ID.instruction);
 
 	if (BUBBLE != 0) {
 		return;
@@ -666,6 +690,7 @@ void pipe_stage_decode() {
 	} else if (INSTRUCTION_HOLDER.format == 4) { // B
 		CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.BR_address, 26, 2);
 		BRANCH_STALL = 1;
+ 		CURRENT_STATE.PC += 4;
 	} else if (INSTRUCTION_HOLDER.format == 5) { // CB
 		if ((INSTRUCTION_HOLDER.opcode >= 0x5A8 && INSTRUCTION_HOLDER.opcode <= 0x5AF) || 
 			(INSTRUCTION_HOLDER.opcode >= 0x5A0 && INSTRUCTION_HOLDER.opcode <= 0x5A7)) {
@@ -674,6 +699,7 @@ void pipe_stage_decode() {
 
  		CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.COND_BR_address, 19, 2);
  		BRANCH_STALL = 1;
+ 		CURRENT_STATE.PC += 4;	
 	} else if (INSTRUCTION_HOLDER.format == 6) { // IM/IW
 		CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.MOV_immediate;
 	}
@@ -683,14 +709,14 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	//printf("Fetch -----------> ");
+	printf("Fetch -----------> ");
 	if (BRANCH_STALL == 1) {
-		//printf("STALLING\n");
+		printf("STALLING\n");
 		clear_IF_ID_REGS();
 		BRANCH_STALL = 0;
 		return;
 	} else if (BUBBLE != 0) {
-		//printf("BUBBLE\n");
+		printf("BUBBLE\n");
 		return;
 	}
 
@@ -698,7 +724,7 @@ void pipe_stage_fetch() {
 	if (FETCH_MORE != 0) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-		//print_operation(CURRENT_REGS.IF_ID.instruction);
+		print_operation(CURRENT_REGS.IF_ID.instruction);
 		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
 		CURRENT_STATE.PC += 4;
 	} 
