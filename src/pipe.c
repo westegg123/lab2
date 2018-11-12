@@ -22,6 +22,7 @@ Pipeline_Regs CURRENT_REGS, START_REGS;
 int FETCH_MORE = 1;
 int BUBBLE = 0;
 int BRANCH_STALL = 0;
+uint64_t unconditional_branch = 0;
 /* Notes on forwarding:
  * For bubbling, need to implement a control for each function
  * For forwarding - need to forward in the ID stage of each dependent instruction
@@ -251,10 +252,12 @@ void handle_subs() {
 }
 
 void handle_br() {
-	CURRENT_STATE.PC = CURRENT_REGS.ID_EX.primary_data_holder;
+	if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.primary_data_holder)	{
+		unconditional_branch = CURRENT_REGS.ID_EX.primary_data_holder;
+		BUBBLE = 1;
+	}
 	clear_IF_ID_REGS();
 	clear_ID_EX_REGS();
-	BUBBLE = 1;
 }
 
 void handle_mul() {
@@ -327,48 +330,42 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 
 	if (result == 1) {
 		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
-			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
-			clear_IF_ID_REGS();
-			clear_ID_EX_REGS();
-		}  else {
-			clear_ID_EX_REGS();
 		}
 	} else {
-		clear_ID_EX_REGS();
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
+	clear_IF_ID_REGS();
+	clear_ID_EX_REGS();
 }
 
 
 void handle_cbnz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder != 0) {
 		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
-			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
-			clear_IF_ID_REGS();
-			clear_ID_EX_REGS();
-		}  else {
-			clear_ID_EX_REGS();
-		}
+		} 
 	} else {
-		clear_ID_EX_REGS();
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
+	clear_IF_ID_REGS();
+	clear_ID_EX_REGS();
 }
 
 
 void handle_cbz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder == 0) {
 		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
-			CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
-			clear_IF_ID_REGS();
-			clear_ID_EX_REGS();
-		}  else {
-			clear_ID_EX_REGS();
 		}
 	} else {
-		clear_ID_EX_REGS();
+		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
 	}
+	clear_IF_ID_REGS();
+	clear_ID_EX_REGS();
 }
 
 /************************************ END OF HELPERS ************************************/
@@ -381,6 +378,11 @@ void pipe_init() {
 void pipe_cycle() {
 	printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
 	//print_regstate();
+	if (unconditional_branch != 0) {
+		CURRENT_STATE.PC = unconditional_branch;
+		unconditional_branch = 0;
+	}
+
 	START_REGS = CURRENT_REGS;
 	pipe_stage_wb();
 	pipe_stage_mem();
@@ -550,7 +552,6 @@ void pipe_stage_execute() {
 		forward_data(HOLDER, bubble_result, CURRENT_REGS.MEM_WB.fetched_data);
 	}
 
-
 	clear_EX_MEM_REGS();
 	CURRENT_REGS.EX_MEM.instruction = CURRENT_REGS.ID_EX.instruction;
 	if (HOLDER.format == 1) {
@@ -622,10 +623,10 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
 	} else if (HOLDER.format == 4) {
-		printf("This is the PC before branch: %lx\n", CURRENT_STATE.PC);
-		printf("This is the Target PC: %lx\n", CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate);
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-		BUBBLE = 1;
+		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
+			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
+			BUBBLE = 1;
+		}
 		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 	} else if (HOLDER.format == 5) {
