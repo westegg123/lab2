@@ -264,13 +264,13 @@ void print_operation(uint32_t instruction) {
 	if (instruction == 0xd4400000) {
 		printf("HLT\n");
 	} else if (HOLDER.opcode == 0x458 || HOLDER.opcode == 0x459) {
-		printf("ADD: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+		printf("ADD: Rn: %d, Rm: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rm, HOLDER.Rd);
 	} else if (HOLDER.opcode >= 0x488 && HOLDER.opcode <= 0x489) {
-		printf("ADDI: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+		printf("ADDI: Rn: %d, ALU: %x, Rd: %d\n", HOLDER.Rn, HOLDER.ALU_immediate, HOLDER.Rd);
 	} else if (HOLDER.opcode == 0x558 || HOLDER.opcode == 0x559) {
-		printf("ADDS: Rn: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rd);
+		printf("ADDS: Rn: %d, Rm: %d, Rd: %d\n", HOLDER.Rn, HOLDER.Rm, HOLDER.Rd);
 	} else if (HOLDER.opcode >= 0x588 && HOLDER.opcode <= 0x589) {
-		printf("ADDIS: Rd: %d, ALU: %x\n", HOLDER.Rd, HOLDER.ALU_immediate);
+		printf("ADDIS: Rn: %d, ALU: %x, Rd: %d\n", HOLDER.Rn, HOLDER.ALU_immediate, HOLDER.Rd);
 	} else if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
 		printf("CBNZ: Rt: %d COND BR address: %x \n", HOLDER.Rt, HOLDER.COND_BR_address);
 	} else if (HOLDER.opcode >= 0x5A0 && HOLDER.opcode <= 0x5A7) {
@@ -326,7 +326,7 @@ void print_operation(uint32_t instruction) {
 	} else if (HOLDER.opcode == 0x6B0) {
 		printf("BR: \n");
 	} else if (HOLDER.opcode >= 0x0A0 && HOLDER.opcode <= 0x0BF) {
-		printf("B\n");
+		printf("B, BR address: %x\n", HOLDER.BR_address);
 	} else if (HOLDER.opcode >= 0x2A0 && HOLDER.opcode <= 0x2A7) {
 		uint32_t cond = (HOLDER.Rt & 14) >> 1;
 		if (cond == 0) {
