@@ -21,7 +21,6 @@ Pipeline_Regs CURRENT_REGS, START_REGS;
 /* FLAGS */
 int FETCH_MORE = 1;
 int BUBBLE = 0;
-int BRANCH_STALL = 0;
 uint64_t unconditional_branch = 0;
 /* Notes on forwarding:
  * For bubbling, need to implement a control for each function
@@ -122,7 +121,7 @@ int get_memRead(uint32_t opcode) {
 }
 
 int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
-	if (ind_instruct == 0) {
+	if (ind_instruct == 0 || depend_instruct == 0) {
 		return 0;
 	}
 
@@ -163,6 +162,10 @@ int hazard_detection_unit(uint32_t depend_instruct, uint32_t ind_instruct) {
 }
 
 int forward(uint32_t depend_instruct, uint32_t ind_instruct) {
+	if (ind_instruct == 0 || depend_instruct == 0) {
+		return 0;
+	}
+
 	parsed_instruction_holder depend_holder = get_holder(depend_instruct);
 	parsed_instruction_holder ind_holder = get_holder(ind_instruct);
 
@@ -252,11 +255,11 @@ void handle_subs() {
 }
 
 void handle_br() {
-	if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.primary_data_holder)	{
+	if (CURRENT_REGS.IF_ID.PC != CURRENT_REGS.ID_EX.primary_data_holder)	{
 		unconditional_branch = CURRENT_REGS.ID_EX.primary_data_holder;
-		BUBBLE = 1;
+		clear_IF_ID_REGS();
 	}
-	clear_IF_ID_REGS();
+	BUBBLE = 1;
 	clear_ID_EX_REGS();
 }
 
@@ -291,8 +294,9 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 	int flag_N = CURRENT_STATE.FLAG_N;
 	int flag_Z = CURRENT_STATE.FLAG_Z;
 	int result = 0; 
-
+	
 	parsed_instruction_holder MEM_instruct = get_holder(START_REGS.EX_MEM.instruction);
+	//print_operation(START_REGS.EX_MEM.instruction);
 	if (MEM_instruct.opcode == ADDS || MEM_instruct.opcode == (ADDS + 1) ||
 		MEM_instruct.opcode == ANDS || MEM_instruct.opcode == SUBS || 
 		MEM_instruct.opcode == (SUBS + 1) || MEM_instruct.opcode == ADDIS || 
@@ -300,13 +304,15 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		MEM_instruct.opcode == (SUBIS + 1)) {
 
 		flag_Z = (START_REGS.EX_MEM.ALU_result == 0) ? 1 : 0;
-		flag_N = (START_REGS.EX_MEM.ALU_result < 0) ? 1 : 0;
+		flag_N = (((long)START_REGS.EX_MEM.ALU_result) < 0) ? 1: 0;
 	}
-
+	//printf("THis is the flags AFTER: N: %d Z: %d\n",flag_N, flag_Z);
+	
 	if (cond == 0) {
 		// EQ or NE
 		//printf("HANDLING BEQ or BNE\n");
 		//printf("flag Z:	%x\n", flag_Z);
+
 		if (flag_Z == 1) {
 			result = 1;	
 		}
@@ -323,56 +329,49 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 			result = 1;
 		}
 	}
+	//printf("This is the result: %d\n", result);
 
 	if ((HOLDER.Rt & 1) == 1 && ((HOLDER.Rt & 15) != 15)) {
 		result = !result;
 	}
-
+	//printf("This is the result: %d\n", result);
+	
 	if (result == 1) {
-		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
+		if (CURRENT_REGS.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-			BUBBLE = 1;
 			clear_IF_ID_REGS();
-		}
-		clear_ID_EX_REGS();
-	} else {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
+		}	
 	}
+	BUBBLE = 1;
+	clear_ID_EX_REGS();
 }
 
 
 void handle_cbnz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder != 0) {
-		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
+		if (CURRENT_REGS.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
 			clear_IF_ID_REGS();
 		} 
-		clear_ID_EX_REGS();
-	} else {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
 	}
+
+
+	BUBBLE = 1;
+	clear_ID_EX_REGS();
 }
 
 
 void handle_cbz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder == 0) {
-		if (CURRENT_STATE.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
+		if (CURRENT_REGS.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-			BUBBLE = 1;	
 			clear_IF_ID_REGS();
 		}
-
-		clear_ID_EX_REGS();
-	} else {
-		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
-		clear_IF_ID_REGS();
-		clear_ID_EX_REGS();
 	}
+
+	BUBBLE = 1;
+	clear_ID_EX_REGS();
 }
 
 /************************************ END OF HELPERS ************************************/
@@ -383,7 +382,8 @@ void pipe_init() {
 }
 
 void pipe_cycle() {
-	printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
+	//printf("--------CYCLE START (%lx)-----\n", CURRENT_STATE.PC);
+	//printf("--------CYCLE START -----\n");
 	//print_regstate();
 	if (unconditional_branch != 0) {
 		CURRENT_STATE.PC = unconditional_branch;
@@ -397,12 +397,12 @@ void pipe_cycle() {
 	pipe_stage_decode();
 	pipe_stage_fetch();
 	reset_bubble();
-	printf("-------- CYCLE END (%d, %lx) -------\n\n", (stat_cycles + 1), CURRENT_STATE.PC);
+	//printf("-------- CYCLE END (%d, %lx) -------\n\n", (stat_cycles + 1), CURRENT_STATE.PC);
 }
 
 void pipe_stage_wb() {
-	printf("Write BACK -----------> ");
-	print_operation(CURRENT_REGS.MEM_WB.instruction);
+	//printf("Write BACK -----------> ");
+	//print_operation(CURRENT_REGS.MEM_WB.instruction);
 	if (CURRENT_REGS.MEM_WB.instruction == 0) {
 		//printf("Write Back Stage Skipped\n");
 		return;
@@ -449,18 +449,20 @@ void pipe_stage_wb() {
 	}
 
 	if ((WRITE_TO != -1) && (WRITE_TO != 31)) {
-		if (INSTRUCTION_HOLDER.format != 3) { 
+		if (INSTRUCTION_HOLDER.format != 3) {
 			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.ALU_result;
 		} else {
 			CURRENT_STATE.REGS[WRITE_TO] = CURRENT_REGS.MEM_WB.fetched_data;
 		}
 	}
 	stat_inst_retire++;
+	//printf("Retired: %d    -->  ", stat_inst_retire);
+	//print_operation(CURRENT_REGS.MEM_WB.instruction);
 }
 
 void pipe_stage_mem() {
-	printf("Memory -----------> ");
-	print_operation(CURRENT_REGS.EX_MEM.instruction);
+	//printf("Memory -----------> ");
+	//print_operation(CURRENT_REGS.EX_MEM.instruction);
 
 	if (CURRENT_REGS.EX_MEM.instruction == 0) {
 		//printf("Memmeory Stage Skipped\n");
@@ -505,7 +507,7 @@ void pipe_stage_mem() {
 void forward_data (parsed_instruction_holder HOLDER, int result, uint64_t data) {
 	if (result == 1) {
 		CURRENT_REGS.ID_EX.primary_data_holder = data;
-		if (HOLDER.format == 1) {
+		if (HOLDER.format == 1 && HOLDER.opcode != BR) {
 			if (HOLDER.Rm == HOLDER.Rn) {
 				CURRENT_REGS.ID_EX.secondary_data_holder = data;	
 			}
@@ -517,8 +519,8 @@ void forward_data (parsed_instruction_holder HOLDER, int result, uint64_t data) 
 
 // R INSTR EXECUTE STAGE
 void pipe_stage_execute() {
-	printf("Execute -----------> ");
-	print_operation(CURRENT_REGS.ID_EX.instruction);
+	//printf("Execute -----------> ");
+	//print_operation(CURRENT_REGS.ID_EX.instruction);
 
 	if (CURRENT_REGS.ID_EX.instruction == 0) {
 		//printf("Execute Skipped\n");
@@ -542,15 +544,10 @@ void pipe_stage_execute() {
 	int MEM_forward = forward(CURRENT_REGS.ID_EX.instruction, CURRENT_REGS.EX_MEM.instruction);
 	int WB_forward = forward(CURRENT_REGS.ID_EX.instruction, START_REGS.MEM_WB.instruction);
 
-	//printf("This is Mem forward: %u\n", MEM_forward);
-	//printf("This is WB forward: %u\n", WB_forward);
-
-	//printf("MEM - Instruction 1: %lx <----- Instruction 2: %lx\n", CURRENT_REGS.EX_MEM.instruction, CURRENT_REGS.ID_EX.instruction);
-
 	forward_data(HOLDER, MEM_forward, CURRENT_REGS.EX_MEM.ALU_result);
 	
 	if ((WB_forward != 0) && (MEM_forward != WB_forward)) {
-		forward_data(HOLDER, WB_forward, CURRENT_REGS.MEM_WB.ALU_result);
+		forward_data(HOLDER, WB_forward, START_REGS.MEM_WB.ALU_result);
 	}
 
 	// if (CURRENT_REGS.EX_MEM.instruction == 0) {
@@ -630,11 +627,11 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
 	} else if (HOLDER.format == 4) {
-		if (CURRENT_STATE.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
+		if (CURRENT_REGS.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-			BUBBLE = 1;
 			clear_IF_ID_REGS();
 		}
+		BUBBLE = 1;
 		clear_ID_EX_REGS();
 	} else if (HOLDER.format == 5) {
 		if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
@@ -651,8 +648,8 @@ void pipe_stage_execute() {
 
 
 void pipe_stage_decode() {
-	printf("Decode -----------> ");
-	print_operation(CURRENT_REGS.IF_ID.instruction);
+	//printf("Decode -----------> ");
+	//print_operation(CURRENT_REGS.IF_ID.instruction);
 
 	if (BUBBLE != 0) {
 		return;
@@ -684,10 +681,6 @@ void pipe_stage_decode() {
 			CURRENT_REGS.ID_EX.secondary_data_holder = 
 				get_instruction_segment(16,21, CURRENT_REGS.IF_ID.instruction);
 		}
-
-		if (INSTRUCTION_HOLDER.opcode == BR) {
-			BRANCH_STALL = 1;
-		}
 	} else if (INSTRUCTION_HOLDER.format == 2) { // I
 	 	CURRENT_REGS.ID_EX.primary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rn];
 	 	CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.ALU_immediate;
@@ -703,14 +696,13 @@ void pipe_stage_decode() {
 
 	} else if (INSTRUCTION_HOLDER.format == 4) { // B
 		CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.BR_address, 26, 2);
-		BRANCH_STALL = 1;
+		
 	} else if (INSTRUCTION_HOLDER.format == 5) { // CB
 		if ((INSTRUCTION_HOLDER.opcode >= 0x5A8 && INSTRUCTION_HOLDER.opcode <= 0x5AF) || 
 			(INSTRUCTION_HOLDER.opcode >= 0x5A0 && INSTRUCTION_HOLDER.opcode <= 0x5A7)) {
 			CURRENT_REGS.ID_EX.secondary_data_holder = CURRENT_STATE.REGS[INSTRUCTION_HOLDER.Rt];
 		}
  		CURRENT_REGS.ID_EX.immediate = sign_extend(INSTRUCTION_HOLDER.COND_BR_address, 19, 2);
- 		BRANCH_STALL = 1;
 	} else if (INSTRUCTION_HOLDER.format == 6) { // IM/IW
 		CURRENT_REGS.ID_EX.immediate = INSTRUCTION_HOLDER.MOV_immediate;
 	}
@@ -720,24 +712,17 @@ void pipe_stage_decode() {
 }
 
 void pipe_stage_fetch() {
-	printf("Fetch -----------> ");
-	if (BRANCH_STALL == 1) {
-		printf("STALLING\n");
-		clear_IF_ID_REGS();
-		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-		CURRENT_STATE.PC += 4;
-		BRANCH_STALL = 0;
-		return;
-	} else if (BUBBLE != 0) {
-		printf("BUBBLE\n");
+	//printf("Fetch -----------> ");
+	
+	if (BUBBLE != 0) {
+		//printf("BUBBLE\n");
 		return;
 	}
-
 
 	if (FETCH_MORE != 0) {
 		clear_IF_ID_REGS();
 		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
-		print_operation(CURRENT_REGS.IF_ID.instruction);
+		//print_operation(CURRENT_REGS.IF_ID.instruction);
 		CURRENT_REGS.IF_ID.PC = CURRENT_STATE.PC;
 		CURRENT_STATE.PC += 4;
 	} 
