@@ -8,8 +8,7 @@ do
 	./ref_sim "$file" < run.txt >> ref_results.txt
 done
 
-#./sim "$INPUT_DIR" < run.txt > my_results.txt
-#./ref_sim "$INPUT_DIR" < run.txt > ref_results.txt
-#diff my_results.txt ref_results.txt
+diff my_results.txt ref_results.txt
+echo "FINITO"
 
 exit

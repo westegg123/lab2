@@ -1,8 +1,10 @@
 #!/bin/bash
 
 cycles=$1
+echo "run 1" > run.txt
+echo "rdump" >> run.txt
 
-for ((i = 1; i <= cycles; i++))
+for ((i = 1; i <= (cycles-1); i++))
 do
         echo "run 1" >> run.txt
         echo "rdump" >> run.txt
