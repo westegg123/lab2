@@ -332,12 +332,14 @@ void handle_bcond(parsed_instruction_holder HOLDER) {
 		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
+			clear_IF_ID_REGS();
 		}
+		clear_ID_EX_REGS();
 	} else {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
+		clear_IF_ID_REGS();
+		clear_ID_EX_REGS();
 	}
-	clear_IF_ID_REGS();
-	clear_ID_EX_REGS();
 }
 
 
@@ -346,26 +348,31 @@ void handle_cbnz() {
 		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
+			clear_IF_ID_REGS();
 		} 
+		clear_ID_EX_REGS();
 	} else {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
+		clear_IF_ID_REGS();
+		clear_ID_EX_REGS();
 	}
-	clear_IF_ID_REGS();
-	clear_ID_EX_REGS();
 }
 
 
 void handle_cbz() {
 	if (CURRENT_REGS.ID_EX.secondary_data_holder == 0) {
-		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
+		if (CURRENT_STATE.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {	
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
-			BUBBLE = 1;
+			BUBBLE = 1;	
+			clear_IF_ID_REGS();
 		}
+
+		clear_ID_EX_REGS();
 	} else {
 		CURRENT_STATE.PC = CURRENT_REGS.ID_EX.PC + 4;
+		clear_IF_ID_REGS();
+		clear_ID_EX_REGS();
 	}
-	clear_IF_ID_REGS();
-	clear_ID_EX_REGS();
 }
 
 /************************************ END OF HELPERS ************************************/
@@ -623,11 +630,11 @@ void pipe_stage_execute() {
 			CURRENT_REGS.EX_MEM.data_to_write = get_memory_segment(0,31, CURRENT_REGS.ID_EX.secondary_data_holder);
 		}
 	} else if (HOLDER.format == 4) {
-		if (CURRENT_STATE.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
+		if (CURRENT_STATE.IF_ID.PC != CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate) {
 			unconditional_branch = CURRENT_REGS.ID_EX.PC + CURRENT_REGS.ID_EX.immediate;
 			BUBBLE = 1;
+			clear_IF_ID_REGS();
 		}
-		clear_IF_ID_REGS();
 		clear_ID_EX_REGS();
 	} else if (HOLDER.format == 5) {
 		if (HOLDER.opcode >= 0x5A8 && HOLDER.opcode <= 0x5AF) {
@@ -717,6 +724,7 @@ void pipe_stage_fetch() {
 	if (BRANCH_STALL == 1) {
 		printf("STALLING\n");
 		clear_IF_ID_REGS();
+		CURRENT_REGS.IF_ID.instruction = mem_read_32(CURRENT_STATE.PC);
 		CURRENT_STATE.PC += 4;
 		BRANCH_STALL = 0;
 		return;
